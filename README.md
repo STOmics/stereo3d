@@ -1,6 +1,6 @@
 
 <h1 align="center">
-  <img src=https://cloud.stomics.tech/assets/login.91df32c7.gif width=25% height=25%><br/>Stereo3D
+  <img src="docs/lamprey.gif" width=25% height=25%><br/>Stereo3D
 </h1>
 
 <h4 align="center">
