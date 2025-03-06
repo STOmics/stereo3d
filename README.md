@@ -1,10 +1,10 @@
 
 <h1 align="center">
-  <img src="docs/lamprey.gif" width=25% height=25%><br/>Stereo3D
+  <img src="docs/lamprey.gif" width=50% height=50%><br/>
 </h1>
 
 <h4 align="center">
-  Auto get stereo 3D data with Python
+  Stereo3D: Auto get stereo 3D data with Python
 </h4>
 
 ## Description
