@@ -29,19 +29,18 @@ pip install -r requirements.txt
 ```
 ## Usage
 Before run the pipeline, You need to confirm the following four parameters:
-* ```--record``` Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md).
-* ```--saw List``` Input [saw](https://github.com/STOmics/SAW) file, [details](docs/extra.md)
-* ```--block``` Input block face files, [details](docs/extra.md)
+* ```--record_sheet``` Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md).
+* ```--tissue_mask``` The [saw](https://github.com/STOmics/SAW) output files(04.tissuecut), [details](docs/extra.md)
+* ```--matrix_path``` The [saw](https://github.com/STOmics/SAW) input files(gene matrix)
 * ```--output``` Output dir
 
 Run ```python stereo3d --help``` for detail.
 
-```
-python stereo3d.py \
--r /hwfssz1/ST_BIOINTEL/P20Z10200N0039/06.groups/01.cellbin/liuhuanlin/01.code/stereo3d/docs/E-ST20220923002_slice_records_20221110.xlsx \
--b /hwfssz1/ST_BIOINTEL/P20Z10200N0039/06.groups/06.3D_reconstruction/luqin3/Blockface_20221110_mouse_embroyo_rename \
--s /jdfssz2/ST_BIGDATA/Stomics/warehouse/prd/ods/STOmics/ShenZhen_projectData/Analysis_Result/E-ST20220923002 \
-/jdfssz2/ST_BIGDATA/Stomics/warehouse/prd/ods/stomics/analysisResult/E-ST20220923002 \
--o /hwfssz1/ST_BIOINTEL/P20Z10200N0039/06.groups/01.cellbin/liuhuanlin/02.data/temp/bf_s3d
+```shell
+python stereo3d_with_matrix.py \
+--matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
+--tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
+--record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
+--output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
 ```
 After running, the result you get is composed of multiple files and directories. For more detailed instructions, you need to visit [here](docs/extra.md)

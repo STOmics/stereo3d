@@ -58,7 +58,7 @@ class Stereo3DwithTissueMatrix(object):
         return crop_mask_path
     
     def _register(self, crop_mask_path):
-        from stereo3d.register import align_slices
+        from stereo3d.register.registration import align_slices
         # align mask
         crop_tissue_list = [os.path.join(crop_mask_path, os.path.basename(i)) for i in self._tissue]
         align_output_path = os.path.join(self.output_path, "02.register", "01.align_mask")
