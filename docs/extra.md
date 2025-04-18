@@ -13,16 +13,14 @@ The file has two tables. Among them, Table ```Meta``` records the key original d
 | Z-interval  | The stepping distance of the robotic arm on the Z axis |
 
 ### SliceSequence
-|  Name   | Description  | Value  |
-|  ----  | ----  | ----  |
-| Slice_ID  | Tags for documenting organization | - |
-| Z_index  | Optical imaging magnification | - |
-| Idling  | The physical size of each pixel | - |
-| SSDNA_SN  | The movement distance of the camera in the X direction |  -|
-| SSDNA_ChipNo  | The stepping distance of the robotic arm on the Z axis | - |
-| BlockFaceNo  | The stepping distance of the robotic arm on the Z axis | - |
-| BF_del  | The stepping distance of the robotic arm on the Z axis | - |
-| HE_SN  | The stepping distance of the robotic arm on the Z axis | - |
+|  Name   | Description                                            | Value  |
+|  ----  |--------------------------------------------------------| ----  |
+| Slice_ID  | The slicing order of each slice                        | - |
+| Z_index  | The stepping distance of the robotic arm on the Z axis | - |
+| Idling  | Discard this slice                                     | - |
+| SSDNA_SN  | The slicing order of the chip                          |  -|
+| SSDNA_ChipNo  | The chip number of the spatiotemporal sequencing chip  | - |
+| HE_SN  | The chip number of the spatiotemporal sequencing chip  | - |
 
 ## SAW output
 <h3 align="left">
