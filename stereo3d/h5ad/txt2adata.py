@@ -6,6 +6,7 @@
 # @Email   : zhangchao5@genomics.cn
 import os.path
 
+from stereo3d.gem.transform import read_gem_from_gem
 import pandas as pd
 import os.path as osp
 import scipy.sparse as sp
@@ -34,6 +35,7 @@ def data_encapsulation(data, bin_size, save=False):
     adata.obsm['spatial'] = coo.to_numpy()
     if isinstance(save, str):
         adata.write_h5ad(save)
+
     return adata
 
 
@@ -51,11 +53,22 @@ def generate_binlabel(data, bin_size=50):
 
 
 def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
-    gem_list = glob.glob(osp.join(matrix_dir, "*.gem"))
+    gem_list = []
+    for it in os.listdir(matrix_dir):
+        if '.gef' in it or '.gem' in it:
+            gem_list.append(os.path.join(matrix_dir, it))
+    # gem_list = glob.glob(osp.join(matrix_dir, "*.gem"))
     for it in tqdm.tqdm(gem_list, desc='Bin-{} Cluster'.format(bin_size), ncols=100):
         i = osp.basename(it)
-        save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
-        df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
+        if '.gem' in i:
+            save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
+            df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
+        elif '.gef' in i:
+            save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # 根据需求修改save_name
+            df = read_gem_from_gem(it) # 根据 lasso 得到文件去读
+        else:
+            pass
+
         generate_binlabel(df, bin_size=bin_size)  # 根据需求修改bin_size
         data_encapsulation(df, bin_size=bin_size, save=save_path)
 

@@ -1,7 +1,10 @@
 import os
 import json
+import shutil
+
 import numpy as np
 import pandas as pd
+import h5py
 
 from glob import glob
 from tqdm import tqdm
@@ -50,6 +53,31 @@ def gem_read(gem_file):
         gem = pd.read_csv(gem_file, sep='\t', skiprows=6)
 
     return gem
+
+def read_gem_from_gem(gef_file):
+    h = h5py.File(gef_file, 'r')
+    gene = h['geneExp']['bin1']['gene'][:]
+    expression = h['geneExp']['bin1']['expression'][:]
+    df = pd.DataFrame(columns=('geneID', 'x', 'y', 'MIDCount'))
+    df['x'] = expression['x']
+    df['y'] = expression['y']
+    df['MIDCount'] = expression['count']
+    _ = np.zeros((expression.shape[0],), dtype='S64')
+    for i in range(gene.shape[0]):
+        s, o = (gene[i][2], gene[i][3])
+        df['geneID'][s: s + o] = gene[i]['geneID']
+    # df['geneID'] = _
+
+    return df
+
+
+def gef_trans(gef_file, offset, mat, output_path):
+    shutil.copy(gef_file, output_path)
+    with h5py.File(output_path, 'r') as h:
+        expression = h['geneExp']['bin1']['expression'][:]
+        new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat)
+        expression['x'] = new_x
+        expression['y'] = new_y
 
 
 def gem_trans(gem_file, offset, mat, output_path):
@@ -111,9 +139,14 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
         if mask_cut is not None or align is not None:
             mask_cut = None
             mat = align['mat']
-            gem_trans(
-                gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gem")
-            )
+            if gem_file.endswith('gem'):
+                gem_trans(
+                    gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gem")
+                )
+            elif gem_file.endswith('gef'):
+                gef_trans(
+                    gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gef")
+                )
 
 
 if __name__ == "__main__":

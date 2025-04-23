@@ -41,11 +41,17 @@ class Stereo3DwithTissueMatrix(object):
         self._matrix = list()
         self._tissue = list()
         for chip_name in self._slice_seq.get_chip_seq():
-            for tissue, gem in zip(sorted(glob(os.path.join(self.tissue_mask, "*.tif"))), 
-                                   sorted(glob(os.path.join(self.matrix_path, "*.gem")))):
-                if chip_name in tissue and chip_name in gem:
-                    self._tissue.append(tissue)
-                    self._matrix.append(gem)
+            tissue_p = os.path.join(self.tissue_mask, '{}.tif'.format(chip_name))
+            if os.path.exists(tissue_p):
+                self._tissue.append(tissue_p)
+            gem_matrix_p = os.path.join(self.matrix_path, '{}.gem'.format(chip_name))
+            gef_matrix_p = os.path.join(self.matrix_path, '{}.gef'.format(chip_name))
+            if os.path.exists(gem_matrix_p):
+                self._matrix.append(gem_matrix_p)
+            elif os.path.exists(gef_matrix_p):
+                self._matrix.append(gef_matrix_p)
+            else:
+                pass
 
         assert len(self._tissue) == len(self._matrix), 'List length of matrix != List length of mask'
         glog.info('A total of {} slices were identified'.format(len(self._tissue)))
