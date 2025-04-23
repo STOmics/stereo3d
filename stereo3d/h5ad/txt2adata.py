@@ -52,7 +52,7 @@ def generate_binlabel(data, bin_size=50):
 
 def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
     gem_list = glob.glob(osp.join(matrix_dir, "*.gem"))
-    for it in tqdm.tqdm(gem_list, desc='Bin-{} Cluster'.format(bin_size)):
+    for it in tqdm.tqdm(gem_list, desc='Bin-{} Cluster'.format(bin_size), ncols=100):
         i = osp.basename(it)
         save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
         df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
@@ -64,7 +64,7 @@ def batch_spatial_leiden(h5ad_path: str, save_path: str, spot_size=15):
     from matplotlib import pyplot as plt
 
     h5ad_list = glob.glob(osp.join(h5ad_path, "*.h5ad"))
-    for it in tqdm.tqdm(h5ad_list, desc='Spatial Leiden'):
+    for it in tqdm.tqdm(h5ad_list, desc='Spatial Leiden', ncols=100):
         adata = sc.read_h5ad(it)
         sc.pp.normalize_total(adata, target_sum=1e4)
         sc.pp.log1p(adata)

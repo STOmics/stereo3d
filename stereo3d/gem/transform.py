@@ -92,7 +92,7 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
     with open(align_json_path, 'r') as js:
         align_info = json.load(js)
 
-    for gem_file in tqdm(gem_list, desc='Gem'):
+    for gem_file in tqdm(gem_list, desc='Gem', ncols=100):
         gem_name = os.path.splitext(os.path.basename(gem_file))[0]
         for key in mask_cut_info.keys():
             if gem_name in key:

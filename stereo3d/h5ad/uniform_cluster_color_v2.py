@@ -1,3 +1,5 @@
+import logging
+
 import anndata as ad
 import os
 import scanpy as sc
@@ -15,8 +17,11 @@ except ImportError:
 
 def uniform_cluster_color(h5ad_list: list, out_path:str):
     # h5ad_list = glob.glob(os.path.join(h5ad_path, "*.h5ad"))
+    import harmonypy
+
+    harmonypy.harmony.logger.setLevel(logging.WARN)  # Disable harmony's info log, harmony is a dependency library of sc
     adatas = []
-    for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad'):
+    for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad', ncols=100):
         adata = ad.read(file)
         adatas.append(adata)
         del adata
@@ -33,7 +38,7 @@ def uniform_cluster_color(h5ad_list: list, out_path:str):
     sc.tl.umap(adata_all)
     sc.tl.leiden(adata_all)
 
-    for i, c in enumerate(tqdm.tqdm(adata_all.obs["batch"].cat.categories, desc='SpecifiedColor')):
+    for i, c in enumerate(tqdm.tqdm(adata_all.obs["batch"].cat.categories, desc='SpecifiedColor', ncols=100)):
         sub_data = adata_all[adata_all.obs["batch"] == c]
         sub_data.obsm['spatial_mm'] = np.zeros((sub_data.shape[0], 2))
         sub_data.obsm['spatial_mm'][:, 0] = sub_data.obsm['spatial'][:, 0] * 500 / 1000000

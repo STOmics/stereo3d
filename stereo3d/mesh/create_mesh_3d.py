@@ -63,7 +63,7 @@ def get_mask_3d_points(mask_path_list,
     points_3d_inside = None
     scale = int(z_interval / pixel4mm)
 
-    for i, img_path in enumerate(tqdm(mask_path_list, desc="Mask")):
+    for i, img_path in enumerate(tqdm(mask_path_list, desc="Mask", ncols=100)):
         image = cv.imread(img_path, -1)
         image = cv.resize(image, [int(image.shape[1] / scale), int(image.shape[0] / scale)])
 
@@ -371,6 +371,7 @@ def points_3d_to_mesh(points_3d,
     mesh1 = _mesh_filter_smooth(mesh, method='simple', show_mesh=show_mesh)
 
     mesh1 = mesh1.scale(mesh_scale, mesh1.get_center())  # 尺度控制
+    mesh1.triangle_normals = o3d.utility.Vector3dVector([])
 
     # mesh1.paint_uniform_color([1, 0.706, 0])  # 涂色
 

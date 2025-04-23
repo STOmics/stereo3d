@@ -360,7 +360,7 @@ def _align_slices_similar(images_list, output_path):
     """
     info_dict = dict()
     up_image = None
-    for i, image in enumerate(tqdm(images_list, desc="Regis")):
+    for i, image in enumerate(tqdm(images_list, desc="Regis", ncols=100)):
         name = os.path.basename(image)
         if i == 0:
             shutil.copyfile(image, os.path.join(output_path, name))
