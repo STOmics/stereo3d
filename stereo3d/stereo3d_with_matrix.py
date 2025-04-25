@@ -29,6 +29,16 @@ class Stereo3DwithTissueMatrix(object):
 
         # sn_name = ss.get_chip_seq()
         # z_interval = ss.get_z_interval(index='bf')
+
+    def get_matrix_path(self, chip_name: str) -> str:
+        for suffix in ['gef', 'gem.gz', 'gem', 'txt']:
+            gem_matrix_p = os.path.join(self.matrix_path, '{}.{}'.format(chip_name, suffix))
+            if os.path.exists(gem_matrix_p):
+                return gem_matrix_p
+            else:
+                pass
+
+        return ''
     
     def _input_check(self, ):
         for it in [self.matrix_path, self.tissue_mask, self.record_sheet]:
@@ -44,14 +54,10 @@ class Stereo3DwithTissueMatrix(object):
             tissue_p = os.path.join(self.tissue_mask, '{}.tif'.format(chip_name))
             if os.path.exists(tissue_p):
                 self._tissue.append(tissue_p)
-            gem_matrix_p = os.path.join(self.matrix_path, '{}.gem'.format(chip_name))
-            gef_matrix_p = os.path.join(self.matrix_path, '{}.gef'.format(chip_name))
-            if os.path.exists(gem_matrix_p):
-                self._matrix.append(gem_matrix_p)
-            elif os.path.exists(gef_matrix_p):
-                self._matrix.append(gef_matrix_p)
-            else:
-                pass
+
+            p = self.get_matrix_path(chip_name)
+            if p != '':
+                self._matrix.append(p)
 
         assert len(self._tissue) == len(self._matrix), 'List length of matrix != List length of mask'
         glog.info('A total of {} slices were identified'.format(len(self._tissue)))
@@ -118,7 +124,8 @@ class Stereo3DwithTissueMatrix(object):
     def _h5ad_list(self, ):
         lst = list()
         for i in self._matrix:
-            lst.append(os.path.basename(i).replace('.gem', '.h5ad'))
+            chip = os.path.basename(i).split('.')[0]
+            lst.append('{}.h5ad'.format(chip))
         return lst
     
     def _insert_organ(self, align_matrix: str):

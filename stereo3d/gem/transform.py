@@ -47,14 +47,15 @@ def gem_read(gem_file):
     Args:
         gem_file:
     """
+    compress = ('gem.gz' in gem_file) and 'tar' or None
     try:
-        gem = pd.read_csv(gem_file, sep='\t')
+        gem = pd.read_csv(gem_file, sep='\t', compression=compress)
     except pd.errors.ParserError:
-        gem = pd.read_csv(gem_file, sep='\t', skiprows=6)
+        gem = pd.read_csv(gem_file, sep='\t', compression=compress)
 
     return gem
 
-def read_gem_from_gem(gef_file):
+def read_gem_from_gef(gef_file):
     h = h5py.File(gef_file, 'r')
     gene = h['geneExp']['bin1']['gene'][:]
     expression = h['geneExp']['bin1']['expression'][:]
@@ -97,7 +98,6 @@ def gem_trans(gem_file, offset, mat, output_path):
 
     gem['x'] = np.int_(np.round(new_x))
     gem['y'] = np.int_(np.round(new_y))
-
     gem.to_csv(output_path, sep='\t', index=False)
 
 
@@ -121,7 +121,7 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
         align_info = json.load(js)
 
     for gem_file in tqdm(gem_list, desc='Gem', ncols=100):
-        gem_name = os.path.splitext(os.path.basename(gem_file))[0]
+        gem_name = os.path.basename(gem_file).split('.')[0]
         for key in mask_cut_info.keys():
             if gem_name in key:
                 mask_cut = mask_cut_info[key]
@@ -139,7 +139,7 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
         if mask_cut is not None or align is not None:
             mask_cut = None
             mat = align['mat']
-            if gem_file.endswith('gem'):
+            if gem_file.endswith('txt') or gem_file.endswith('gem') or gem_file.endswith('gem.gz'):
                 gem_trans(
                     gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gem")
                 )

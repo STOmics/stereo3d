@@ -6,7 +6,7 @@
 # @Email   : zhangchao5@genomics.cn
 import os.path
 
-from stereo3d.gem.transform import read_gem_from_gem
+from stereo3d.gem.transform import read_gem_from_gef
 import pandas as pd
 import os.path as osp
 import scipy.sparse as sp
@@ -63,12 +63,14 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
         if '.gem' in i:
             save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
             df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
+        elif '.txt' in i:
+            save_path = osp.join(save_dir, i.replace('.txt', '.h5ad'))  # 根据需求修改save_name
+            df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
         elif '.gef' in i:
             save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # 根据需求修改save_name
-            df = read_gem_from_gem(it) # 根据 lasso 得到文件去读
+            df = read_gem_from_gef(it) # 根据 lasso 得到文件去读
         else:
             pass
-
         generate_binlabel(df, bin_size=bin_size)  # 根据需求修改bin_size
         data_encapsulation(df, bin_size=bin_size, save=save_path)
 
