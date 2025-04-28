@@ -1,4 +1,4 @@
-## SAW_HUB
+## 1. SAW_HUB
 
 ```shell
 python saw_hub.py \
@@ -16,3 +16,18 @@ python saw_hub.py \
 | output  | The output path              | Required   | string |
 | saw_version  | The version of SAW (7 or 8)  | Required   | int    |
 | stain  | The stain tech (ssDNA or HE) | Required   | string |
+
+
+## 2. Multi Tissue
+```shell
+python multi_tissue.py \
+--mask_path D:\Desktop\stereo3d_1tom\SS200000122BL_B1\SS200000122BL_B1-2.tif \
+--matrix_path D:\Desktop\stereo3d_1tom\SS200000122BL_B1\SS200000122BL_B1.gem.gz \
+-output D:\Desktop\stereo3d_1tom\output\SS200000122BL_B1
+```
+
+| Name        | Description                 | Importance | Dtype  |
+|-------------|-----------------------------|------------|--------|
+| matrix      | The path of matrix file     | Required   | string |
+| mask        | The path of tissue cut file | Required   | string |
+| output      | The output path             | Required   | string |
