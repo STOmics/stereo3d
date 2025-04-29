@@ -1,11 +1,14 @@
 import argparse
 import os.path
 import shutil
-
+import glob
 import glog
 import tqdm
+import sys
+curr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')  # path of the code
+sys.path.append(curr_path)
 
-from stereo3d.file.slice import SliceSequence
+from file.slice import SliceSequence
 
 
 class Saw7(object):
@@ -27,14 +30,19 @@ class Saw7(object):
 
 class Saw8(object):
     def __init__(self, result: str, chip_no: str):
-        self._result: str = os.path.join(result, 'result', chip_no, 'outs')
+        self._result: str = os.path.join(result, chip_no, 'outs')
         self._chip_no = chip_no
 
     @property
     def gef(self, ): return os.path.join(self._result, 'feature_expression', '{}.raw.gef'.format(self._chip_no))
 
     @property
-    def tissue_mask(self, ): return os.path.join(self._result, 'image', 'bin1_img_tissue_cut.tif')
+    def tissue_mask(self, ):
+        cands = glob.glob(os.path.join(self._result, 'image', '*_tissue_cut.tif'))
+        if len(cands):
+            return cands[0]
+        else:
+            return os.path.join(self._result, 'image', 'bin1_img_tissue_cut.tif')
 
 
 class Naming(object):
