@@ -3,6 +3,10 @@ import copy
 import datetime
 import json
 import os.path
+import platform
+import sys
+import time
+
 import cv2 as cv
 import tifffile
 import numpy as np
@@ -109,8 +113,10 @@ class MultiTissue(object):
             else:
                 chn, la, lab, mk, suf = _
                 shutil.copy(f, os.path.join(self.savep, 'mask', '{}_{}.tif'.format(chn, lab)))
-            os.remove(f)
-        shutil.rmtree(tmp_dir)
+            if platform.system() == 'Linux':
+                os.remove(f)
+        if platform.system() == 'Linux':
+            shutil.rmtree(tmp_dir)
 
 
 def main(args, para):
