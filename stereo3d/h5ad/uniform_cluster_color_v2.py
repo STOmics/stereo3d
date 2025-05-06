@@ -1,4 +1,5 @@
 import logging
+import glog
 
 import anndata as ad
 import os
@@ -142,7 +143,11 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
     return organ_path
 
 
-def organ_mesh(organ_path: str, mesh_output_path: str, z_interval=0.008):
+def organ_mesh(
+        organ_path: str,
+        mesh_output_path: str,
+        z_interval=0.008
+):
     from stereo3d.mesh.create_mesh_3d import points_3d_to_mesh
 
     if organ_path.endswith('.txt'):
@@ -159,12 +164,16 @@ def organ_mesh(organ_path: str, mesh_output_path: str, z_interval=0.008):
     
     output_path, name = os.path.split(mesh_output_path)
 
+    if len(np.unique(points_3d[:, 2])) == 1:
+        glog.warning(f'The z_interval of the points is only 1 dims.')
+        return
+
     points_3d_to_mesh(points_3d,
-                    z_interval=z_interval,
-                    mesh_scale=1,
-                    output_path=output_path,
-                    show_mesh=False,
-                    name=name.replace('.obj', ''))
+                      z_interval=z_interval,
+                      mesh_scale=1,
+                      output_path=output_path,
+                      show_mesh=False,
+                      name=name.replace('.obj', ''))
 
 
 if __name__ == '__main__':

@@ -55,6 +55,7 @@ def gem_read(gem_file):
 
     return gem
 
+
 def read_gem_from_gef(gef_file):
     h = h5py.File(gef_file, 'r')
     gene = h['geneExp']['bin1']['gene'][:]
@@ -64,10 +65,11 @@ def read_gem_from_gef(gef_file):
     df['y'] = expression['y']
     df['MIDCount'] = expression['count']
     _ = np.zeros((expression.shape[0],), dtype='S64')
+
+    gene_name = 'geneID' if 'geneID' in gene.dtype.names else 'gene'
     for i in range(gene.shape[0]):
-        s, o = (gene[i][2], gene[i][3])
-        df['geneID'][s: s + o] = gene[i]['geneID']
-    # df['geneID'] = _
+        s, o = (gene[i]['offset'], gene[i]['count'])
+        df['geneID'][s: s + o] = gene[i][gene_name]
 
     return df
 
@@ -150,7 +152,8 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
 
 
 if __name__ == "__main__":
-    trans_gem_by_json(gem_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem",
-                      cut_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
-                      align_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
-                      output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem\new_gem")
+    # trans_gem_by_json(gem_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem",
+    #                   cut_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
+    #                   align_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
+    #                   output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem\new_gem")
+    read_gem_from_gef(r"/media/Data1/user/szl/liyumei/data/output/gem/SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gef")
