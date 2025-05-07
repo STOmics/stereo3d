@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import gzip
 
 import numpy as np
 import pandas as pd
@@ -42,18 +43,44 @@ def trans_points(x, y, offset=None, mat=None):
     return coord[:, 0], coord[:, 1]
 
 
-def gem_read(gem_file):
+def gem_read(
+        gem_file
+):
     """
     Args:
         gem_file:
     """
-    compress = ('gem.gz' in gem_file) and 'tar' or None
-    try:
-        gem = pd.read_csv(gem_file, sep='\t', compression=compress)
-    except pd.errors.ParserError:
-        gem = pd.read_csv(gem_file, sep='\t', compression=compress)
+    suffix = os.path.splitext(gem_file)[1]
+    if suffix == ".gz":
+        fh = gzip.open(gem_file, "rb")
+    else:
+        fh = open(str(gem_file), "rb")  # pylint: disable=consider-using-with
+    title = ""
+    # Move pointer to the header of line
+    eoh = 0
+    header = ""
+    for line in fh:
+        line = line.decode("utf-8")
+        if not line.startswith("#"):
+            title = line
+            break
+        header += line
+        eoh = fh.tell()
+    fh.seek(eoh)
+    # Initlise
+    title = title.strip("\n").split("\t")
+    umi_count_name = [i for i in title if "ount" in i][0]
+    title = ["x", "y", umi_count_name]
 
-    return gem
+    df = pd.read_csv(
+        fh,
+        sep = "\t",
+        header = 0,
+        usecols = title,
+        dtype = dict(zip(title, [np.uint32] * 3)),
+    )
+
+    return df
 
 
 def read_gem_from_gef(gef_file):
@@ -156,4 +183,6 @@ if __name__ == "__main__":
     #                   cut_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
     #                   align_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
     #                   output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem\new_gem")
-    read_gem_from_gef(r"/media/Data1/user/szl/liyumei/data/output/gem/SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gef")
+    # read_gem_from_gef(r"/media/Data1/user/szl/liyumei/data/output/gem/SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gef")
+
+    aaa = gem_read(r"D:\02.data\liuhuanlin\SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gem.gz")
