@@ -147,6 +147,7 @@ class Stereo3DwithTissueMatrix(object):
         categories = uniform_cluster_color(h5ad_list, color_h5ad)
         glog.info('Cluster total categories are {}'.format(categories))
         color_h5ad_list = [os.path.join(color_h5ad, i) for i in self._h5ad_list()]
+
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,

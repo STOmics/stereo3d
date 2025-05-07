@@ -76,11 +76,11 @@ def read_gem_from_gef(gef_file):
 
 def gef_trans(gef_file, offset, mat, output_path):
     shutil.copy(gef_file, output_path)
-    with h5py.File(output_path, 'r') as h:
+    with h5py.File(output_path, 'r+') as h:
         expression = h['geneExp']['bin1']['expression'][:]
         new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat)
-        expression['x'] = new_x
-        expression['y'] = new_y
+        h['geneExp']['bin1']['expression']['x'] = new_x
+        h['geneExp']['bin1']['expression']['y'] = new_y
 
 
 def gem_trans(gem_file, offset, mat, output_path):
@@ -139,7 +139,7 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
             align = None
 
         if mask_cut is not None or align is not None:
-            mask_cut = None
+            # mask_cut = None
             mat = align['mat']
             if gem_file.endswith('txt') or gem_file.endswith('gem') or gem_file.endswith('gem.gz'):
                 gem_trans(

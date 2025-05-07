@@ -165,7 +165,7 @@ def organ_mesh(
     output_path, name = os.path.split(mesh_output_path)
 
     if len(np.unique(points_3d[:, 2])) == 1:
-        glog.warning(f'The z_interval of the points is only 1 dims.')
+        glog.warning(f'\n The z_interval of the points is only 1 dims.')
         return
 
     points_3d_to_mesh(points_3d,
