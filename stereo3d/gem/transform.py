@@ -72,12 +72,16 @@ def gem_read(
     umi_count_name = [i for i in title if "ount" in i][0]
     title = ["x", "y", umi_count_name]
 
+    type_dict = {"geneID": str}
+    type_dict.update(dict(zip(title, [np.uint32] * len(title))))
+    title.insert(0, "geneID")
+
     df = pd.read_csv(
         fh,
         sep = "\t",
         header = 0,
         usecols = title,
-        dtype = dict(zip(title, [np.uint32] * 3)),
+        dtype = type_dict,
     )
 
     return df
