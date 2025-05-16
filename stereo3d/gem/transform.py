@@ -68,7 +68,8 @@ def gem_read(
         eoh = fh.tell()
     fh.seek(eoh)
     # Initlise
-    title = title.strip("\n").split("\t")
+    # title = title.strip("\n").split("\t")
+    title = title.strip().split("\t")
     umi_count_name = [i for i in title if "ount" in i][0]
     title = ["x", "y", umi_count_name]
 

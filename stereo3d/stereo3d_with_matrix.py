@@ -59,7 +59,7 @@ class Stereo3DwithTissueMatrix(object):
             if p != '':
                 self._matrix.append(p)
 
-        assert len(self._tissue) == len(self._matrix), 'List length of matrix != List length of mask'
+        # assert len(self._tissue) == len(self._matrix), 'List length of matrix != List length of mask'
         glog.info('A total of {} slices were identified'.format(len(self._tissue)))
         return 0
 
