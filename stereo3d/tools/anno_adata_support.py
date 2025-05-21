@@ -1,6 +1,11 @@
 import scanpy as sc
 import numpy as np
 import argparse
+import os
+import sys
+CURR_PATH = os.path.dirname(os.path.realpath(__file__))
+ROOT_PATH = os.path.dirname(os.path.dirname(CURR_PATH))
+sys.path.append(ROOT_PATH)
 from stereo3d.gem.transform import trans_matrix_by_json
 from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype, organ_mesh
 import os
