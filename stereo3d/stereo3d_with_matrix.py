@@ -79,13 +79,13 @@ class Stereo3DwithTissueMatrix(object):
         return align_output_path
     
     def _transform_gem(self, ):
-        from stereo3d.gem.transform import trans_gem_by_json
+        from stereo3d.gem.transform import trans_matrix_by_json
 
         # Gem path
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
         gem_save_path = os.path.join(self.output_path, "03.gem")
-        trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+        trans_matrix_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
         return gem_save_path
     
     def _create_outermost_surface(self, align_output_path, pixel4mm=0.0005):
