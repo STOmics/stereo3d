@@ -51,12 +51,12 @@ def uniform_cluster_color(h5ad_list: list, out_path:str):
 
         sub_data.obsm['spatial_mm'] = np.hstack([sub_data.obsm['spatial_mm'], z_value])
         save_path = os.path.join(out_path, os.path.basename(h5ad_list[i]))
-        sub_data.write_h5ad(save_path)
         with plt.rc_context():
             # sc.pl.umap(adata, color="leiden", show=False)
             sc.pl.spatial(sub_data, color="leiden", spot_size=15, show=False)
             dst_path = save_path.replace('.h5ad', '.png')
             plt.savefig(dst_path, bbox_inches='tight')
+        sub_data.write_h5ad(save_path)
     return adata_all.obs['leiden'].cat.categories.tolist()
 
 

@@ -152,7 +152,10 @@ class Stereo3DwithTissueMatrix(object):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
                 adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None)
-            organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+            try:
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+            except Exception as e:
+                glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
 
     def reconstruction_3D(self, matrix_path: str, tissue_mask: str, record_sheet: str, output_path: str):
