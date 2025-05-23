@@ -1,18 +1,22 @@
 import scanpy as sc
 import numpy as np
 import argparse
+
 import os
 import sys
+
 CURR_PATH = os.path.dirname(os.path.realpath(__file__))
 ROOT_PATH = os.path.dirname(os.path.dirname(CURR_PATH))
 sys.path.append(ROOT_PATH)
-from stereo3d.gem.transform import trans_matrix_by_json
-from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype, organ_mesh
-import os
+print(CURR_PATH)
+print(ROOT_PATH)
+
 import tqdm
 import glog
 import warnings
 warnings.filterwarnings('ignore')
+from stereo3d.gem.transform import trans_matrix_by_json
+from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype, organ_mesh
 
 
 def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
@@ -20,13 +24,10 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
     for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad', ncols=100):
         adata = sc.read_h5ad(file)
         adatas.append(adata)
-        del adata
-    import anndata as ad
-    adata_all = ad.AnnData.concatenate(*adatas)
-    del adatas
 
-    for i, c in enumerate(tqdm.tqdm(adata_all.obs["batch"].cat.categories, desc='SpecifiedColor', ncols=100)):
-        sub_data = adata_all[adata_all.obs["batch"] == c]
+
+    for i, c in enumerate(tqdm.tqdm(range(len(adatas)), desc='SpecifiedColor', ncols=100)):
+        sub_data = adatas[c]
         sub_data.obsm['spatial_mm'] = np.zeros((sub_data.shape[0], 2))
         sub_data.obsm['spatial_mm'][:, 0] = sub_data.obsm['spatial'][:, 0] * 500 / 1000000
         sub_data.obsm['spatial_mm'][:, 1] = sub_data.obsm['spatial'][:, 1] * 500 / 1000000
@@ -37,8 +38,7 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
         sub_data.obsm['spatial_mm'] = np.hstack([sub_data.obsm['spatial_mm'], z_value])
         save_path = os.path.join(out_path, os.path.basename(h5ad_list[i]))
         sub_data.write_h5ad(save_path)
-    return adata_all.obs[cluster_key].cat.categories.tolist()
-
+    return adatas
 
 def adata_insert_organ(matrix_path, output_path,
                        cut_json_path: [str, None] = None,
