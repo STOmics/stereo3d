@@ -25,12 +25,15 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
         adata = sc.read_h5ad(file)
         adatas.append(adata)
 
+    categories=[]
 
     for i, c in enumerate(tqdm.tqdm(range(len(adatas)), desc='SpecifiedColor', ncols=100)):
         sub_data = adatas[c]
         sub_data.obsm['spatial_mm'] = np.zeros((sub_data.shape[0], 2))
         sub_data.obsm['spatial_mm'][:, 0] = sub_data.obsm['spatial'][:, 0] * 500 / 1000000
         sub_data.obsm['spatial_mm'][:, 1] = sub_data.obsm['spatial'][:, 1] * 500 / 1000000
+        categories=categories+sub_data.obs[cluster_key].tolist()
+
 
         z_value = [i * 0.008] * sub_data.obs.shape[0]
         z_value = np.array(z_value).reshape(-1, 1)
@@ -38,7 +41,7 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
         sub_data.obsm['spatial_mm'] = np.hstack([sub_data.obsm['spatial_mm'], z_value])
         save_path = os.path.join(out_path, os.path.basename(h5ad_list[i]))
         sub_data.write_h5ad(save_path)
-    return adatas
+    return list(set(categories))
 
 def adata_insert_organ(matrix_path, output_path,
                        cut_json_path: [str, None] = None,
@@ -104,5 +107,3 @@ if __name__ == "__main__":
     parser.set_defaults(func=main)
     (para, args) = parser.parse_known_args()
     para.func(para, args)
-
-
