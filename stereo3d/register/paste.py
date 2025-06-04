@@ -440,10 +440,10 @@ def my_fused_gromov_wasserstein(M, C1, C2, p, q, G_init = None, loss_fun = 'squa
         armijo = True  # there is no closed form line-search with KL
 
     if armijo:
-        def line_search(cost, G, deltaG, Mi, cost_G, **kwargs):
+        def line_search(cost, G, deltaG, Mi, cost_G, df_G, **kwargs):
             return ot.optim.line_search_armijo(cost, G, deltaG, Mi, cost_G, nx = nx, **kwargs)
     else:
-        def line_search(cost, G, deltaG, Mi, cost_G, **kwargs):
+        def line_search(cost, G, deltaG, Mi, cost_G, df_G, **kwargs):
             return solve_gromov_linesearch(G, deltaG, cost_G, C1, C2, M = 0., reg = 1., nx = nx, **kwargs)
 
     if log:

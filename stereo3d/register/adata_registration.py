@@ -14,7 +14,7 @@ import numpy as np
 import anndata as ad
 import matplotlib.pyplot as plt
 
-from .paste import pairwise_align as paste_align, \
+from paste import pairwise_align as paste_align, \
     generalized_procrustes_analysis, \
     paste_align_accuracy
 
@@ -70,7 +70,9 @@ class AlignSlicer:
         for adata in adata_list:
             data = adata.obsm[spatial]
             labels = adata.obs[self.anno].tolist()
-            colors = [adata.uns[self.anno_color][label] for label in labels]
+            cat_list = adata.obs[self.anno].cat.categories.tolist()
+
+            colors = [adata.uns[self.anno_color][cat_list.index(label)] for label in labels]
             ax.scatter(data[:, 0], data[:, 1], c = colors, marker = 'o', s = 3, alpha = 0.8)
         ## add axis label.
         ax.set_xlabel('x')
@@ -136,12 +138,16 @@ class Paste(AlignSlicer):
         return adata_st_list, pis
 
 
-def align(self, adata,
-           key = 'spatial_mm',
-           regis_key = 'spatial_regis',
-           anno = 'auto_anno',
-           anno_color = 'anno_color',
-           method = 'paste'):
+def align(
+        adata,
+        key = 'spatial_mm',
+        regis_key = 'spatial_regis',
+        anno = 'auto_anno',
+        anno_color = 'anno_color',
+        method = 'paste',
+        file_path = '',
+        output_path = '',
+):
     """
     Args:
         adata: str | list
@@ -164,14 +170,14 @@ def align(self, adata,
 
     if method == 'paste':
         paste = Paste(adata_list,
-                      h5ad_path = os.path.join(self.output_path, self._h5ad_output),
+                      h5ad_path = file_path,
                       spatial_key = key,
-                      out_dir = os.path.join(self.output_path, self._h5ad_output),
+                      out_dir = output_path,
                       spatial_regis_key = regis_key,
                       anno = anno,
                       anno_color = anno_color)
 
-        adata_list, pis = paste.paste()
+        adata_list, pis = paste.align()
         align_accur = paste_align_accuracy(adata_list, pis, anno = anno)
         glog.info(f"Align accuracy -- {regis_key}: {align_accur}")
     else:
@@ -203,3 +209,22 @@ def align(self, adata,
     #                ylabel = 'PC score',
     #                savefig = os.path.join(self.output_path, self._align_qc_data, 'pc_score.png'))
 
+
+if __name__ == '__main__':
+    adata_path = r"C:\Users\87393\Downloads\test_ad"
+    output_path = r"C:\Users\87393\Downloads\test_ad1"
+    sorted_file_names = sorted([os.path.join(adata_path, i) for i in os.listdir(adata_path)])
+
+    adata_list = [ad.read(i) for i in sorted_file_names]
+    align(
+        adata = adata_list,
+        key = 'spatial_mm',
+        regis_key = 'spatial_regis',
+        anno = 'leiden',
+        anno_color = 'leiden_colors',
+        method = 'paste',
+        file_path = adata_path,
+        output_path = output_path,
+    )
+
+    print(1)
