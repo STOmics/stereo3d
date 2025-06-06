@@ -37,6 +37,8 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     cd spateo-viewer
     pip install -r requirements.txt
     ```
+   _Note:_ vtk==9.2.2 can solve ```TypeError: Could not find a suitable VTK type for <U54```
+
 ### usage
 * spateo
     ```shell
@@ -59,9 +61,6 @@ Here, we use the spateo framework to build a simple process to input multiple ad
   | cluster_pts  | When there are too many points to describe the 3D tissue expression information, <br>downsampling can be used, and the sampled data is used for process analysis. <br>Here is the number of points sampled for each category,<br>Please use with caution when you have few points. | Optional   | int    |
 
 * spateo-viewer
-  * install
-
-    _Note:_ vtk==9.2.2 can solve ```TypeError: Could not find a suitable VTK type for <U54```
 
   * open
     ```shell
