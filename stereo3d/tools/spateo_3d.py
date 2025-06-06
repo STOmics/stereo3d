@@ -237,14 +237,18 @@ class Spateo3D(object):
 
     def export_trans_para(self, ):
         with open(self._ng.plot_dir / self._ng.trans_param_file, 'w') as fd:
-            _ = {i + 1: t.tolist() for i, t in enumerate(self._trans)}
-            json.dump(_, fd, indent=2)
+            dct = {}
+            for i, t in enumerate(self._trans):
+                dct[i + 1] = {k: v.tolist() for k, v in t.items()}
+            json.dump(dct, fd, indent=2)
 
     def export_trans_h5ads(self, data_path: str):
         if os.path.isfile(data_path):
             adata = st.read(data_path)
             slice_label = adata.obs[self._key_slice].cat.categories
             slices = [adata[adata.obs[self._key_slice] == s] for s in slice_label]
+            for s in slices:
+                s.obsm[self._spatial_key] = s.obsm[self._spatial_key][:, :2]
             aligned_slices = st.align.morpho_align_apply_transformation(
                 models=slices, spatial_key=self._spatial_key, key_added=self._key_add, transformation=self._trans)
             aligned_adata = st.concat(aligned_slices, axis=0, join='inner', merge='unique')

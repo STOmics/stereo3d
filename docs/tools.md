@@ -29,7 +29,7 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     pip install pymeshfix
     pip install pyacvd
     pip install scanpy
-    pip install spateo
+    pip install spateo-release==1.1.1
     ```
 * [spateo-viewer](https://github.com/aristoteleo/spateo-viewer)
     ```shell
@@ -42,15 +42,29 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     ```shell
     python spateo_3d.py \
     -input D:\data\stereo3d\spateo\gy\E14-16h_a_count_normal_stereoseq.h5ad \
-    --output D:\data\stereo3d\spateo\gy\E14-16h \
+    -output D:\data\stereo3d\spateo\gy\E14-16h \
     -z_step 1 \
     -slice slice_ID \
     -cluster annotation \
     -cluster_pts 1000
     ```
-  * spateo-viewer
-    * open
-      ```shell
-      python stv_explorer.py --port 1234
-      ```
-    * show, [more](https://github.com/aristoteleo/spateo-viewer/blob/main/usage/spateo-viewer.pdf)
+  
+  |  Name   | Description                                                                                                                                                                                                                                                                        | Importance | Dtype  |
+  |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|--------|
+  | input  | File or directory path. <br>File path: all slices are in one file; <br>Directory path: all slices are in one directory (the file name must contain numbers to reflect their relationship)                                                                                          | Required   | string |
+  | output  | Result save path                                                                                                                                                                                                                                                                   | Required   | int    |
+  | z_step  | The distance between slices can be adjusted according to the rendering effect in the spateo-viewer                                                                                                                                                                                 | Optional   | string |
+  | cluster  | The field name where the clustering information is located in the h5ad file                                                                                                                                                                                                        | Optional   | int    |
+  | slice  | Name the field in the h5ad file that represents the relationship between slices before and after                                                                                                                                                                                   | Optional   | string |
+  | cluster_pts  | When there are too many points to describe the 3D tissue expression information, <br>downsampling can be used, and the sampled data is used for process analysis. <br>Here is the number of points sampled for each category,<br>Please use with caution when you have few points. | Optional   | int    |
+
+* spateo-viewer
+  * install
+
+    _Note:_ vtk==9.2.2 can solve ```TypeError: Could not find a suitable VTK type for <U54```
+
+  * open
+    ```shell
+    python stv_explorer.py --port 1234
+    ```
+  * show, [more](https://github.com/aristoteleo/spateo-viewer/blob/main/usage/spateo-viewer.pdf)
