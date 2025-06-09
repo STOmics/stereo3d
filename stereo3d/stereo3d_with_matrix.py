@@ -25,6 +25,8 @@ class Stereo3DwithTissueMatrix(object):
         self.output_path: str = None
         self._matrix: list = None
         self._tissue: list = None
+
+        self._overwrite_flag: bool = True
         self._slice_seq = SliceSequence()
 
         # sn_name = ss.get_chip_seq()
@@ -66,7 +68,18 @@ class Stereo3DwithTissueMatrix(object):
     def _crop_mask(self, ):
         crop_mask_path = os.path.join(self.output_path, "02.register", "00.crop_mask")
         if not os.path.exists(crop_mask_path): os.makedirs(crop_mask_path)
-        cut_mask(self._tissue, crop_mask_path)
+        if self._overwrite_flag:
+            cut_mask(self._tissue, crop_mask_path)
+            glog.info('Crop mask is overwrite the files.')
+        else:
+            files_num = len(os.listdir(crop_mask_path)) - 1
+
+            if files_num != len(self._tissue):
+                cut_mask(self._tissue, crop_mask_path)
+                glog.info('Crop mask updated.')
+            else:
+                glog.info("Files all exist, skip crop mask.")
+
         return crop_mask_path
     
     def _register(self, crop_mask_path):
@@ -75,7 +88,18 @@ class Stereo3DwithTissueMatrix(object):
         crop_tissue_list = [os.path.join(crop_mask_path, os.path.basename(i)) for i in self._tissue]
         align_output_path = os.path.join(self.output_path, "02.register", "01.align_mask")
         if not os.path.exists(align_output_path): os.makedirs(align_output_path)
-        align_slices(crop_tissue_list, align_output_path)
+
+        if self._overwrite_flag:
+            align_slices(crop_tissue_list, align_output_path)
+            glog.info('Align mask is overwrite the files.')
+        else:
+            files_num = len(os.listdir(align_output_path)) - 1
+            if files_num != len(crop_tissue_list):
+                align_slices(crop_tissue_list, align_output_path)
+                glog.info('Align mask updated.')
+            else:
+                glog.info("Files all exist, skip align mask.")
+
         return align_output_path
     
     def _transform_gem(self, ):
@@ -85,7 +109,16 @@ class Stereo3DwithTissueMatrix(object):
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
         gem_save_path = os.path.join(self.output_path, "03.gem")
-        trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+        if self._overwrite_flag:
+            trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+            glog.info('Trans gem is overwrite the files.')
+        else:
+            files_num = len(os.listdir(gem_save_path))
+            if files_num != len(self._matrix):
+                trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+                glog.info('Trans gem updated.')
+            else:
+                glog.info("Files all exist, skip trans gem.")
         return gem_save_path
     
     def _create_outermost_surface(self, align_output_path, pixel4mm=0.0005):
@@ -158,22 +191,55 @@ class Stereo3DwithTissueMatrix(object):
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
 
-    def reconstruction_3D(self, matrix_path: str, tissue_mask: str, record_sheet: str, output_path: str):
+    def reconstruction_3D(
+            self,
+            matrix_path: str,
+            tissue_mask: str,
+            record_sheet: str,
+            output_path: str,
+            overwrite: int = 1
+    ):
+        """
+
+        Args:
+            matrix_path:
+            tissue_mask:
+            record_sheet:
+            output_path:
+            overwrite:
+
+        Returns:
+
+        """
         self.matrix_path = matrix_path
         self.tissue_mask = tissue_mask
         self.record_sheet = record_sheet
         self.output_path = output_path
+
+        self._overwrite_flag = True if overwrite else False
+        glog.info("----------01.Extract data----------")
         flag = self._input_check()
-        glog.info('Completed verification of input parameters')
+        glog.info('Completed verification of input parameters.')
+
+        glog.info("----------02.Crop Mask----------")
         crop_mask_path = self._crop_mask()
-        glog.info('Completed crop tissue mask and save the result to {}'.format(crop_mask_path))
+        glog.info('Completed crop tissue mask and save the result.')
+
+        glog.info("----------03.Register Mask----------")
         align_output_path = self._register(crop_mask_path)
-        glog.info('Completed adjacent slice alignment')
+        glog.info('Completed adjacent slice alignment.')
+
+        glog.info("----------04.Transform Gene----------")
         gem_save_path = self._transform_gem()
-        glog.info('Completed the reuse of registration parameters to matrix files')
+        glog.info('Completed the reuse of registration parameters to matrix files.')
+
+        glog.info("----------05.Calculate mesh----------")
         self._create_outermost_surface(align_output_path)
-        glog.info('The outermost envelope of the organ has been created')
+        glog.info('The outermost envelope of the organ has been created.')
+
+        glog.info("----------06.Insert organ----------")
         self._insert_organ(gem_save_path)
+        glog.info('Internal organ mesh has been generated')
 
 
 def main(args, para):
@@ -181,8 +247,9 @@ def main(args, para):
     swtm = Stereo3DwithTissueMatrix()
     swtm.reconstruction_3D(matrix_path=args.matrix_path, 
                            tissue_mask=args.tissue_mask,
-                            record_sheet=args.record_sheet,
-                            output_path=args.output_path)
+                           record_sheet=args.record_sheet,
+                           output_path=args.output_path,
+                           overwrite = args.overwrite)
     glog.info('Welcome to cooperate again')
 
 
@@ -190,9 +257,13 @@ usage = """ Submit data format verification """
 PROG_VERSION = 'v0.0.1'
 
 
-# E:\app\anaconda\setup\custom\envs\stereo3d\python stereo3d_with_matrix.py --matrix_path C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\01.gem --tissue_mask C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\00.mask --record_sheet C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\E-ST20220923002_slice_records_E14_16.xlsx --output C:\Users\BGI\Desktop\stereo3d-test\output
-
 if __name__ == '__main__':
+    # E:\app\anaconda\setup\custom\envs\stereo3d\python stereo3d_with_matrix.py
+    # --matrix_path C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\01.gem
+    # --tissue_mask C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\00.mask
+    # --record_sheet C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\E-ST20220923002_slice_records_E14_16.xlsx
+    # --output C:\Users\BGI\Desktop\stereo3d-test\output
+
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--version", action="version", version=PROG_VERSION)
     parser.add_argument("-matrix", "--matrix_path", action="store", dest="matrix_path", type=str, required=True,
@@ -201,8 +272,10 @@ if __name__ == '__main__':
                         help="Input tissue mask path.")
     parser.add_argument("-record", "--record_sheet", action="store", dest="record_sheet", type=str, required=True,
                         help="Input record sheet path. ")
+    parser.add_argument("-overwrite", "--overwrite", action="store", dest="overwrite", type=int, required=False,
+                        default = 0, help="Overwrite old files, 0 is False, 1 is True. ")
     parser.add_argument("-output", "--output_path", action="store", dest="output_path", type=str, required=True,
-                        help="Ioutput path. ")
+                        help="Output path. ")
     parser.set_defaults(func=main)
 
     (para, args) = parser.parse_known_args()
