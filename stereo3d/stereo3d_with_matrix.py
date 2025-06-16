@@ -109,6 +109,8 @@ class Stereo3DwithTissueMatrix(object):
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
         gem_save_path = os.path.join(self.output_path, "03.gem")
+        os.makedirs(gem_save_path, exist_ok=True)
+
         if self._overwrite_flag:
             trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
             glog.info('Trans gem is overwrite the files.')
