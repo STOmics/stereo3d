@@ -83,8 +83,16 @@ class Stereo3DwithTissueMatrix(object):
         return crop_mask_path
     
     def _register(self, crop_mask_path):
-        from stereo3d.register.registration import align_slices
+        from stereo3d.register.registration import align_slices, manual_align
         # align mask
+
+        def check_manual(path_list: list):
+            for _p in path_list:
+                if "_m" in _p or "_manual" in _p:
+                    return True
+            else:
+                return False
+
         crop_tissue_list = [os.path.join(crop_mask_path, os.path.basename(i)) for i in self._tissue]
         align_output_path = os.path.join(self.output_path, "02.register", "01.align_mask")
         if not os.path.exists(align_output_path): os.makedirs(align_output_path)
@@ -98,6 +106,12 @@ class Stereo3DwithTissueMatrix(object):
                 align_slices(crop_tissue_list, align_output_path)
                 glog.info('Align mask updated.')
             else:
+                if check_manual(os.listdir(align_output_path)):
+                    glog.info("Contains manual files for recalculation.")
+                    align_path_list = [os.path.join(align_output_path, i) for i in os.listdir(align_output_path)]
+                    manual_path = os.path.join(self.output_path, "02.register", "02.manual")
+                    manual_align(align_path_list, align_output_path, manual_path)
+
                 glog.info("Files all exist, skip align mask.")
 
         return align_output_path

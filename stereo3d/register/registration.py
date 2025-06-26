@@ -470,6 +470,54 @@ def _affine_image(image_src, matrix, shape):
     return _src
 
 
+def manual_align(images_list, output_path, manual_path):
+    """
+
+    Args:
+        images_list:
+        output_path:
+
+    Returns:
+
+    """
+    from stereo3d.manual import parse_xml2mat
+
+    align_json = os.path.join(output_path, "align_info.json")
+    info_dict = json.load(open(align_json, 'r'))
+
+    for img_path in images_list:
+        name = os.path.basename(img_path).split(".")[0]
+        if "_m" in name or "_manual" in name:
+            _name = name.replace("_manual", "")
+            _name = _name.replace("_m", "")
+
+            manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
+            if len(manual_file) > 0:
+                manual_mat, shape = parse_xml2mat(manual_file[0])
+            else: continue
+
+            sd_flag = False
+            name_list = []
+            for k, v in info_dict.items():
+                if _name in k:
+                    name_list.append(k)
+                    register_mat = v['mat']
+                    sd_flag = True
+                    continue
+
+                if sd_flag:
+                    name_list.append(k)
+                    second_mat = v['mat']
+                    break
+
+            _second_mat = np.matrix(manual_mat).I @ np.array(register_mat) @ np.array(second_mat)
+
+            for n, m in zip(name_list, [manual_mat, _second_mat]):
+                info_dict[n]['mat'] = m
+
+            json_write(info_dict, output_path)
+
+
 def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
     """
     配准一系列切片图像或掩码图像
@@ -509,3 +557,7 @@ if __name__ == "__main__":
     output_path = r"D:\02.data\luqin\E14-16h_a_bin1_image_regis"
     align_slices(slices_path, output_path)  # , dst_path, scale2dst=0.0038/0.0005)
 
+    # with open(r"C:\Users\87393\Downloads\manual_registration\rigid.xml", 'r') as file:
+    #     xml_con = file.read()
+    # aaa = xmltodict.parse(xml_con)
+    # print(1)
