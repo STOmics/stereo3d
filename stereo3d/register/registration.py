@@ -321,7 +321,9 @@ def json_write(info_dict, output_path):
     """
     for k, v in info_dict.items():
         if info_dict[k]['mat'] is not None:
-            info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
+            if isinstance(info_dict[k]['mat'], np.ndarray):
+                info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
+            # info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
     with open(os.path.join(output_path, "align_info.json"), 'w') as f:
         json.dump(info_dict, f, indent=2)
 
