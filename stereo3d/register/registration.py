@@ -517,6 +517,8 @@ def manual_align(images_list, output_path, manual_path):
             for n, m in zip(name_list, [manual_mat, _second_mat]):
                 info_dict[n]['mat'] = m
 
+            os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+
             json_write(info_dict, output_path)
 
 
