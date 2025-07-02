@@ -365,7 +365,9 @@ def _align_slices_similar(images_list, output_path):
     for i, image in enumerate(tqdm(images_list, desc="Regis", ncols=100)):
         name = os.path.basename(image)
         if i == 0:
-            shutil.copyfile(image, os.path.join(output_path, name))
+            try:
+                shutil.copyfile(image, os.path.join(output_path, name))
+            except shutil.SameFileError: pass
             up_image = os.path.join(output_path, name)
             _, info_dict = _align_slices_and_record(
                 src_image=image, dst_image=None, scale=1, info_dict=info_dict
@@ -472,7 +474,7 @@ def _affine_image(image_src, matrix, shape):
     return _src
 
 
-def manual_align(images_list, output_path, manual_path):
+def manual_align(images_list, output_path, manual_path, crop_tissue_list):
     """
 
     Args:
@@ -487,7 +489,7 @@ def manual_align(images_list, output_path, manual_path):
     align_json = os.path.join(output_path, "align_info.json")
     info_dict = json.load(open(align_json, 'r'))
 
-    for img_path in images_list:
+    for ind, img_path in enumerate(images_list):
         name = os.path.basename(img_path).split(".")[0]
         if "_m" in name or "_manual" in name:
             _name = name.replace("_manual", "")
@@ -498,28 +500,28 @@ def manual_align(images_list, output_path, manual_path):
                 manual_mat, shape = parse_xml2mat(manual_file[0])
             else: continue
 
-            sd_flag = False
             name_list = []
             for k, v in info_dict.items():
                 if _name in k:
                     name_list.append(k)
                     register_mat = v['mat']
-                    sd_flag = True
-                    continue
-
-                if sd_flag:
-                    name_list.append(k)
-                    second_mat = v['mat']
                     break
 
-            _second_mat = np.matrix(manual_mat).I @ np.array(register_mat) @ np.array(second_mat)
+            _register_mat = manual_mat @ np.array(register_mat)
 
-            for n, m in zip(name_list, [manual_mat, _second_mat]):
-                info_dict[n]['mat'] = m
+            info_dict[name_list[0]]['mat'] = _register_mat
+            break
 
-            os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+    _image_list = crop_tissue_list[ind + 1:]
+    _image_list.insert(0, images_list[ind])
+    _info_dict = _align_slices_similar(_image_list, output_path)
+    for k, v in _info_dict.items():
+        if _name in k:
+            continue
+        info_dict[k]['mat'] = v['mat']
 
-            json_write(info_dict, output_path)
+    os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+    json_write(info_dict, output_path)
 
 
 def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
