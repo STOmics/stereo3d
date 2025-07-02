@@ -110,7 +110,7 @@ class Stereo3DwithTissueMatrix(object):
                     glog.info("Contains manual files for recalculation.")
                     align_path_list = [os.path.join(align_output_path, i) for i in os.listdir(align_output_path)]
                     manual_path = os.path.join(self.output_path, "02.register", "02.manual")
-                    manual_align(align_path_list, align_output_path, manual_path)
+                    manual_align(align_path_list, align_output_path, manual_path, crop_tissue_list)
 
                 glog.info("Files all exist, skip align mask.")
 
@@ -213,7 +213,8 @@ class Stereo3DwithTissueMatrix(object):
             tissue_mask: str,
             record_sheet: str,
             output_path: str,
-            overwrite: int = 1
+            overwrite: int = 1,
+            align_method: str = '',
     ):
         """
 
@@ -223,6 +224,7 @@ class Stereo3DwithTissueMatrix(object):
             record_sheet:
             output_path:
             overwrite:
+            align_method: 'paste' or ''
 
         Returns:
 
@@ -233,29 +235,37 @@ class Stereo3DwithTissueMatrix(object):
         self.output_path = output_path
 
         self._overwrite_flag = True if overwrite else False
-        glog.info("----------01.Extract data----------")
-        flag = self._input_check()
-        glog.info('Completed verification of input parameters.')
 
-        glog.info("----------02.Crop Mask----------")
-        crop_mask_path = self._crop_mask()
-        glog.info('Completed crop tissue mask and save the result.')
+        if align_method == 'paste':
+            glog.info("----------01.----------")
+            glog.info("----------02.Align by paste----------")
+            from stereo3d.register.adata_registration import align
+            self._register(self.matrix_path)
 
-        glog.info("----------03.Register Mask----------")
-        align_output_path = self._register(crop_mask_path)
-        glog.info('Completed adjacent slice alignment.')
+        else:
+            glog.info("----------01.Extract data----------")
+            flag = self._input_check()
+            glog.info('Completed verification of input parameters.')
 
-        glog.info("----------04.Transform Gene----------")
-        gem_save_path = self._transform_gem()
-        glog.info('Completed the reuse of registration parameters to matrix files.')
+            glog.info("----------02.Crop Mask----------")
+            crop_mask_path = self._crop_mask()
+            glog.info('Completed crop tissue mask and save the result.')
 
-        glog.info("----------05.Calculate mesh----------")
-        self._create_outermost_surface(align_output_path)
-        glog.info('The outermost envelope of the organ has been created.')
+            glog.info("----------03.Register Mask----------")
+            align_output_path = self._register(crop_mask_path)
+            glog.info('Completed adjacent slice alignment.')
 
-        glog.info("----------06.Insert organ----------")
-        self._insert_organ(gem_save_path)
-        glog.info('Internal organ mesh has been generated')
+            glog.info("----------04.Transform Gene----------")
+            gem_save_path = self._transform_gem()
+            glog.info('Completed the reuse of registration parameters to matrix files.')
+
+            glog.info("----------05.Calculate mesh----------")
+            self._create_outermost_surface(align_output_path)
+            glog.info('The outermost envelope of the organ has been created.')
+
+            glog.info("----------06.Insert organ----------")
+            self._insert_organ(gem_save_path)
+            glog.info('Internal organ mesh has been generated')
 
 
 def main(args, para):
@@ -265,7 +275,8 @@ def main(args, para):
                            tissue_mask=args.tissue_mask,
                            record_sheet=args.record_sheet,
                            output_path=args.output_path,
-                           overwrite = args.overwrite)
+                           overwrite = args.overwrite,
+                           align_method = args.align)
     glog.info('Welcome to cooperate again')
 
 
@@ -290,6 +301,8 @@ if __name__ == '__main__':
                         help="Input record sheet path. ")
     parser.add_argument("-overwrite", "--overwrite", action="store", dest="overwrite", type=int, required=False,
                         default = 0, help="Overwrite old files, 0 is False, 1 is True. ")
+    parser.add_argument("-align", "--align", action = "store", dest = "align", type = str, required = False,
+                        default = '', help = " 'paste' | '' ")
     parser.add_argument("-output", "--output_path", action="store", dest="output_path", type=str, required=True,
                         help="Output path. ")
     parser.set_defaults(func=main)
