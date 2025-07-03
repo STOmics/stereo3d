@@ -17,10 +17,13 @@ def parse_xml2mat(xml_path):
     mat[0, :2] = mat_value[:2]
     mat[1, :2] = mat_value[2:4]
     mat[:2, 2] = mat_value[4:]
+
+    mat[0, 1] = -mat[0, 1]
+    mat[1, 0] = -mat[1, 0]
     
     return mat, [height, width]
 
 
 if __name__ == '__main__':
-    mat, shape = parse_xml2mat(r"C:\Users\87393\Downloads\manual_registration\rigid.xml")
+    mat, shape = parse_xml2mat(r"C:\Users\87393\Downloads\手动配准结果\rigid.xml")
     print(mat)
