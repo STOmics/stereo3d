@@ -321,7 +321,9 @@ def json_write(info_dict, output_path):
     """
     for k, v in info_dict.items():
         if info_dict[k]['mat'] is not None:
-            info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
+            if isinstance(info_dict[k]['mat'], np.ndarray):
+                info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
+            # info_dict[k]['mat'] = info_dict[k]['mat'].tolist()
     with open(os.path.join(output_path, "align_info.json"), 'w') as f:
         json.dump(info_dict, f, indent=2)
 
@@ -363,7 +365,9 @@ def _align_slices_similar(images_list, output_path):
     for i, image in enumerate(tqdm(images_list, desc="Regis", ncols=100)):
         name = os.path.basename(image)
         if i == 0:
-            shutil.copyfile(image, os.path.join(output_path, name))
+            try:
+                shutil.copyfile(image, os.path.join(output_path, name))
+            except shutil.SameFileError: pass
             up_image = os.path.join(output_path, name)
             _, info_dict = _align_slices_and_record(
                 src_image=image, dst_image=None, scale=1, info_dict=info_dict
@@ -470,6 +474,56 @@ def _affine_image(image_src, matrix, shape):
     return _src
 
 
+def manual_align(images_list, output_path, manual_path, crop_tissue_list):
+    """
+
+    Args:
+        images_list:
+        output_path:
+
+    Returns:
+
+    """
+    from stereo3d.manual import parse_xml2mat
+
+    align_json = os.path.join(output_path, "align_info.json")
+    info_dict = json.load(open(align_json, 'r'))
+
+    for ind, img_path in enumerate(images_list):
+        name = os.path.basename(img_path).split(".")[0]
+        if "_m" in name or "_manual" in name:
+            _name = name.replace("_manual", "")
+            _name = _name.replace("_m", "")
+
+            manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
+            if len(manual_file) > 0:
+                manual_mat, shape = parse_xml2mat(manual_file[0])
+            else: continue
+
+            name_list = []
+            for k, v in info_dict.items():
+                if _name in k:
+                    name_list.append(k)
+                    register_mat = v['mat']
+                    break
+
+            _register_mat = manual_mat @ np.array(register_mat)
+
+            info_dict[name_list[0]]['mat'] = _register_mat
+            break
+
+    _image_list = crop_tissue_list[ind + 1:]
+    _image_list.insert(0, images_list[ind])
+    _info_dict = _align_slices_similar(_image_list, output_path)
+    for k, v in _info_dict.items():
+        if _name in k:
+            continue
+        info_dict[k]['mat'] = v['mat']
+
+    os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+    json_write(info_dict, output_path)
+
+
 def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
     """
     配准一系列切片图像或掩码图像
@@ -509,3 +563,7 @@ if __name__ == "__main__":
     output_path = r"D:\02.data\luqin\E14-16h_a_bin1_image_regis"
     align_slices(slices_path, output_path)  # , dst_path, scale2dst=0.0038/0.0005)
 
+    # with open(r"C:\Users\87393\Downloads\manual_registration\rigid.xml", 'r') as file:
+    #     xml_con = file.read()
+    # aaa = xmltodict.parse(xml_con)
+    # print(1)

@@ -1,11 +1,29 @@
 import argparse
 import copy
+import datetime
+import json
 import os.path
-import gzip
+import platform
+import sys
+import time
+
 import cv2 as cv
 import tifffile
 import numpy as np
-import pandas as pd
+from gefpy import cell_mask_annotation
+from gefpy.bgef_writer_cy import generate_bgef
+
+
+def search_files(file_path, exts):
+    files_ = list()
+    for root, dirs, files in os.walk(file_path):
+        if len(files) == 0:
+            continue
+        for f in files:
+            fn, ext = os.path.splitext(f)
+            if ext in exts: files_.append(os.path.join(root, f))
+
+    return files_
 
 
 class MultiTissue(object):
@@ -13,96 +31,107 @@ class MultiTissue(object):
         self._mask: np.ndarray = np.array([])
         self.contours: list = []
         self.boxes: list = []
+        self.chip_no: str = ''
+        self.savep: str = ''
+        self._geojson: str = ''
 
-    def cutout(self, mask: np.ndarray):
+    def cutout(self, mask_path: str):
+        mask = tifffile.imread(mask_path)
         self._mask = mask
-        self.contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)  # 只检测外部轮廓
+        num_labels, labels, stats, _ = cv.connectedComponentsWithStats(mask, connectivity=8, ltype=cv.CV_32S)
 
-        self.boxes = []
-        for cnt in self.contours:
-            # 计算外接矩形（直角矩形）
-            x, y, w, h = cv.boundingRect(cnt)
-            self.boxes.append((x, y, w, h))
+        h0, w0 = self._mask.shape[:2]
+        dct = {
+            "type": "GeometryCollection",
+            "geometries": [],
+            "scale": 1.0,
+            "center": [w0 / 2, h0 / 2, 0.5]
+        }
+        # 遍历所有连通区域（跳过背景0）
+        for idx, label in enumerate(range(1, num_labels)):
+            x, y, w, h, area = stats[label]
+            self.boxes.append([label, x, y, w, h])
+            mask1 = np.zeros_like(self._mask)
+            mask1[labels == label] = 255
+            contours, _ = cv.findContours(mask1, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+            tag = 'L{}_x{}_y{}_w{}_h{}'.format(label, x, y, w, h)
+            dct_ = {
+                "type": "Polygon",
+                "properties": {"uID": idx,
+                               "label": tag
+                               },
+                'coordinates': [np.squeeze(c).tolist() for c in contours],
+                # 'rect': [int(i) for i in (x, y, w, h)]
+            }
+            dct['geometries'].append(dct_)
+            # tag = 'i{}_x{}_y{}_w{}_h{}'.format(label, x, y, w, h)
+            # tifffile.imwrite(
+            #     os.path.join(self.savep, 'mask', '{}_{}.tif'.format(self.chip_no, tag)), mask1, compression=True)
+        self._geojson = os.path.join(self.savep, '{}_{}.lasso.geojson'.format(
+            self.chip_no, datetime.datetime.now().strftime('%Y%m%d%H%M%S')))
+        with open(self._geojson, 'w') as fd:
+            json.dump(dct, fd, indent=2)
 
-    def cutout_gem(self, gem_path: str, output: str):
-        dct = {}
-        if gem_path.endswith('.gef'):
-            pass
+    def cutout_gem(self, gem_path: str):
+        bin_sizes = '1'
+        if gem_path.endswith('gem.gz'):
+            bin1_bgef_file = os.path.join(self.savep, os.path.basename(gem_path).replace('.gem.gz', '.gef'))
+            generate_bgef(gem_path, bin1_bgef_file, bin_sizes=[1])
         else:
-            if gem_path.endswith('.gz'):
-                f = gzip.open(gem_path, 'rb')
-            else:
-                f = open(gem_path, 'rb')
-
-            header = ''
-            num_of_header_lines = 0
-            eoh = 0
-            for i, l in enumerate(f):
-                l = l.decode("utf-8")  # read in as binary, decode first
-                if l.startswith('#'):  # header lines always start with '#'
-                    header += l
-                    num_of_header_lines += 1
-                    eoh = f.tell()  # get end-of-header position
-                else:
-                    break
-            f.seek(eoh)
-            df = pd.read_csv(f, sep='\t', header=0)
-
-        for idx, (x, y, w, h) in enumerate(self.boxes):
-            tag = 'i{}_x{}_y{}_w{}_h{}'.format(idx + 1, x, y, w, h)
-            new = df[(df.x >= x) & (df.x < x + w) & (df.y >= y) & (df.y < y + h)]
-
-            new.columns = df.columns
-            new['x'] -= x
-            new['y'] -= y
-            dct[tag] = new
-            p = os.path.join(output, '{}.gem.gz'.format(tag))
-            new.to_csv(p, compression='gzip', header=None, index=False, sep='\t')
-
-    def tissues(self, default: int = 255) -> dict:
-        dct = {}
-        for idx, cnt in enumerate(self.contours):
-            x, y, w, h = self.boxes[idx]
-            mask1 = np.zeros((h, w), dtype=np.uint8)
-            sh = copy.copy(cnt)
-            sh[:, :, 0] -= x
-            sh[:, :, 1] -= y
-            cv.fillPoly(mask1, [sh], color=default)
-            tag = 'i{}_x{}_y{}_w{}_h{}'.format(idx + 1, x, y, w, h)
-            dct[tag] = mask1
-
-        return dct
+            bin1_bgef_file = gem_path
+        seg = cell_mask_annotation.MaskSegmentation(
+            self.chip_no, self._geojson, bin1_bgef_file, os.path.join(self.savep, 'tmp'), bin_sizes)
+        seg.run_cellMask()
+        # save_exp_heat_map_by_binsize(input_file=gem_path, output_png=r'fe.png', bin_size=100)
 
     def canvas(self, font=cv.FONT_HERSHEY_TRIPLEX, font_siz=5, font_width=3, rect_color=150):
         tmp = copy.copy(self._mask)
         tmp[tmp > 0] = 255
-        for idx, (x, y, w, h) in enumerate(self.boxes):
-            tag = '{}'.format(idx + 1)
+        for (idx, x, y, w, h) in self.boxes:
+            tag = '{}'.format(idx)
             wh, _ = cv.getTextSize(tag, font, font_siz, font_width)
             cv.rectangle(tmp, (x, y - wh[1]), (x + wh[0], y), rect_color, -1)
             cv.rectangle(tmp, (x, y), (x + w, y + h), rect_color, font_width)
             cv.putText(tmp, tag, (x, y), font, font_siz, 0, font_width, cv.LINE_AA)
+        tifffile.imwrite(os.path.join(self.savep, '{}.tif'.format(self.chip_no)), tmp, compression=True)
 
-        return tmp
+    def to_stereo3d(self, ):
+        import shutil
+
+        tmp_dir = os.path.join(self.savep, 'tmp')
+        fs = search_files(tmp_dir, exts=['.gem', '.gef', '.tif'])
+        for f in fs:
+            if not os.path.exists(f): continue
+            file_name = os.path.basename(f)
+            _ = file_name.split('.')
+            if '.gef' in f:
+                chn, lab, le, suf = _
+                shutil.copy(f, os.path.join(self.savep, 'gem', '{}_{}.gef'.format(chn, lab)))
+            elif '.gem' in f:
+                chn, la, bn, lab, suf = _
+                shutil.copy(f, os.path.join(self.savep, 'gem', '{}_{}.gem'.format(chn, lab)))
+            else:
+                chn, la, lab, mk, suf = _
+                shutil.copy(f, os.path.join(self.savep, 'mask', '{}_{}.tif'.format(chn, lab)))
+            if platform.system() == 'Linux':
+                os.remove(f)
+        if platform.system() == 'Linux':
+            shutil.rmtree(tmp_dir)
 
 
 def main(args, para):
-    save_p = args.output_path
-    mask = tifffile.imread(args.mask_path)
+    chip_no = os.path.basename(args.matrix_path).split('.')[0]
+    os.makedirs(os.path.join(args.output_path, 'tmp'), exist_ok=True)
+    os.makedirs(os.path.join(args.output_path, 'gem'), exist_ok=True)
+    os.makedirs(os.path.join(args.output_path, 'mask'), exist_ok=True)
     mt = MultiTissue()
-    mt.cutout(mask)
-    os.makedirs(os.path.join(save_p, 'mask'), exist_ok=True)
-    os.makedirs(os.path.join(save_p, 'gem'), exist_ok=True)
-    chip_no = os.path.basename(args.matrix_path)[0]
+    mt.chip_no = chip_no
+    mt.savep = args.output_path
 
-    sub_t = mt.tissues()
-    for tag, s in sub_t.items():
-        tifffile.imwrite(os.path.join(save_p, 'mask', '{}_{}.tif'.format(chip_no, tag)), s, compression=True)
-
-    c = mt.canvas()
-    tifffile.imwrite(os.path.join(save_p, '{}.tif'.format(chip_no)), c, compression=True)
-
-    mt.cutout_gem(args.matrix_path, output=os.path.join(save_p, 'gem'))
+    mt.cutout(args.mask_path)
+    mt.canvas()
+    mt.cutout_gem(gem_path=args.matrix_path)
+    mt.to_stereo3d()
 
 
 usage = """ Split multi tissue in one chip """

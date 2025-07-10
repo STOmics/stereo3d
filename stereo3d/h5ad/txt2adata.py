@@ -17,7 +17,7 @@ import scanpy as sc
 import glob
 
 
-def data_encapsulation(data, bin_size, save=False):
+def data_encapsulation(data, bin_size, save: str = None):
     # allowed_columns = ["geneID", "MIDCount", f"bin{bin_size}_label", "x", "y"]
     # for col in data.columns:
     #     assert col in allowed_columns, "Error, Got an invalid column name, which only support {}".format(allowed_columns)
@@ -58,7 +58,7 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
         if '.gef' in it or '.gem' in it:
             gem_list.append(os.path.join(matrix_dir, it))
     # gem_list = glob.glob(osp.join(matrix_dir, "*.gem"))
-    for it in tqdm.tqdm(gem_list, desc='Bin-{} Cluster'.format(bin_size), ncols=100):
+    for it in tqdm.tqdm(gem_list, desc='Cluster'.format(bin_size), ncols=100):
         i = osp.basename(it)
         if '.gem' in i:
             save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
@@ -68,7 +68,7 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
             df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
         elif '.gef' in i:
             save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # 根据需求修改save_name
-            df = read_gem_from_gef(it) # 根据 lasso 得到文件去读
+            df = read_gem_from_gef(it)  # 根据 lasso 得到文件去读
         else:
             pass
         generate_binlabel(df, bin_size=bin_size)  # 根据需求修改bin_size
