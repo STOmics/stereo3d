@@ -11,4 +11,4 @@ scanpy==1.9.5
 leidenalg==0.10.1
 harmonypy==0.0.9
 gefpy==1.2.3
-XML2Dict
+XML2Dict==0.2.2

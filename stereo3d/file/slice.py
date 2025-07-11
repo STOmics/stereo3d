@@ -147,7 +147,7 @@ class SliceSequence(object):
 
 
 def main():
-    xlsx = r"E:\lizepeng\m115\E-ST20220923002_slice_records_20221110.xlsx"
+    xlsx = r"E:\m115\E-ST20220923002_slice_records_20221110.xlsx"
     ss = SliceSequence()
     ss.from_xlsx(file_path=xlsx)
     s = ss.get_chip_seq()

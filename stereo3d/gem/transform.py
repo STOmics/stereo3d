@@ -16,7 +16,7 @@ def trans_points(x, y, offset=None, mat=None):
     Args:
         x:
         y:
-        offset: [int, int] - 此处offset为切割的起始坐标
+        offset: [int, int] - Here offset is the starting coordinate of cutting
         mat:
     Returns:
         coord: x, y
@@ -79,10 +79,10 @@ def gem_read(
 
     df = pd.read_csv(
         fh,
-        sep = "\t",
-        header = 0,
-        usecols = title,
-        dtype = type_dict,
+        sep="\t",
+        header=0,
+        usecols=title,
+        dtype=type_dict,
     )
 
     return df
@@ -115,13 +115,24 @@ def gef_trans(gef_file, offset, mat, output_path):
         h['geneExp']['bin1']['expression']['y'] = new_y
 
 
+def anndata_trans(adata_file, offset, mat, output_path):
+    import scanpy as sc
+    adata = sc.read_h5ad(adata_file)
+    if "spatial" in adata.obsm.keys():
+        x, y = adata.obsm["spatial"][:, 0], adata.obsm["spatial"][:, 1]
+        new_x, new_y = trans_points(x, y, offset, mat)
+        adata.obsm["spatial"][:, 0] = new_x
+        adata.obsm["spatial"][:, 1] = new_y
+        adata.write_h5ad(output_path)
+
+
 def gem_trans(gem_file, offset, mat, output_path):
     """
     Args:
         gem_file:
         offset:
         mat:
-        output_path: str - 带文件名
+        output_path: str - With file name
     """
     gem = gem_read(gem_file)
 
@@ -135,7 +146,7 @@ def gem_trans(gem_file, offset, mat, output_path):
     gem.to_csv(output_path, sep='\t', index=False)
 
 
-def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
+def trans_matrix_by_json(gem_path, cut_json_path, align_json_path, output_path):
     """
     Args:
         gem_path:
@@ -154,17 +165,17 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
     with open(align_json_path, 'r') as js:
         align_info = json.load(js)
 
-    for gem_file in tqdm(gem_list, desc='Gem', ncols=100):
-        gem_name = os.path.basename(gem_file).split('.')[0]
+    for matrix_file in tqdm(gem_list, desc='Gem', ncols=100):
+        matrix_name = os.path.basename(matrix_file).split('.')[0]
         for key in mask_cut_info.keys():
-            if gem_name in key:
+            if matrix_name in key:
                 mask_cut = mask_cut_info[key]
                 break
         else:
             mask_cut = None
 
         for key in align_info.keys():
-            if gem_name in key:
+            if matrix_name in key:
                 align = align_info[key]
                 break
         else:
@@ -173,21 +184,23 @@ def trans_gem_by_json(gem_path, cut_json_path, align_json_path, output_path):
         if mask_cut is not None or align is not None:
             # mask_cut = None
             mat = align['mat']
-            if gem_file.endswith('txt') or gem_file.endswith('gem') or gem_file.endswith('gem.gz'):
+            if matrix_file.endswith('txt') or matrix_file.endswith('gem') or matrix_file.endswith('gem.gz'):
                 gem_trans(
-                    gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gem")
+                    matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.gem")
                 )
-            elif gem_file.endswith('gef'):
+            elif matrix_file.endswith('gef'):
                 gef_trans(
-                    gem_file, mask_cut, mat, os.path.join(output_path, f"{gem_name}.gef")
+                    matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.gef")
                 )
+            elif matrix_file.endswith('.h5ad'):
+                anndata_trans(matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.h5ad"))
 
 
 if __name__ == "__main__":
-    # trans_gem_by_json(gem_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem",
-    #                   cut_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
-    #                   align_json_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis\align_info.json",
-    #                   output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_gem\new_gem")
-    # read_gem_from_gef(r"/media/Data1/user/szl/liyumei/data/output/gem/SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gef")
+    # trans_matrix_by_json(gem_path=r"D:\02.data\E14-16h_a_bin1_image_gem",
+    #                   cut_json_path=r"D:\02.data\E14-16h_a_bin1_image_regis\align_info.json",
+    #                   align_json_path=r"D:\02.data\E14-16h_a_bin1_image_regis\align_info.json",
+    #                   output_path=r"D:\02.data\E14-16h_a_bin1_image_gem\new_gem")
+    # read_gem_from_gef(r"/media/Data1/user/szl/data/output/gem/SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gef")
 
-    aaa = gem_read(r"D:\02.data\liuhuanlin\SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gem.gz")
+    aaa = gem_read(r"D:\02.data\SS200000122BL_B1_L1_x7649_y3592_w8139_h6537.gem.gz")

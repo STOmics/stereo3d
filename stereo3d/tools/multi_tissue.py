@@ -4,8 +4,6 @@ import datetime
 import json
 import os.path
 import platform
-import sys
-import time
 
 import cv2 as cv
 import tifffile
@@ -47,7 +45,7 @@ class MultiTissue(object):
             "scale": 1.0,
             "center": [w0 / 2, h0 / 2, 0.5]
         }
-        # 遍历所有连通区域（跳过背景0）
+        # Traverse all connected regions (skip background 0)
         for idx, label in enumerate(range(1, num_labels)):
             x, y, w, h, area = stats[label]
             self.boxes.append([label, x, y, w, h])

@@ -1,9 +1,7 @@
 import os
-import numpy as np
 import pandas as pd
 import cv2 as cv
 import re
-from glob import glob
 
 from gefpy.gef_to_gem_cy import gefToGem
 
@@ -113,11 +111,11 @@ def split_gem(gem_path, output_path, cut):
 
 
 if __name__ == "__main__":
-    # output_path1 = r"E:\lizepeng\7sm\split_gem\mask"
-    # output_path2 = r"E:\lizepeng\7sm\split_gem\gem"
+    # output_path1 = r"E:\7sm\split_gem\mask"
+    # output_path2 = r"E:\7sm\split_gem\gem"
     #
-    # file_gem_path = r"E:\lizepeng\7sm\lamprey_tissuegef"
-    # file_mask_path = r"E:\lizepeng\7sm\lamprey_mask"
+    # file_gem_path = r"E:\7sm\lamprey_tissuegef"
+    # file_mask_path = r"E:\7sm\lamprey_mask"
     #
     # gem_list = glob(os.path.join(file_gem_path, "*.*"))
     # mask_list = glob(os.path.join(file_mask_path, "*.tif"))
@@ -127,7 +125,7 @@ if __name__ == "__main__":
     #     split_gem(gem_path, output_path2, cut)
 
     data_path = r"D:\02.data\stereo3d\zp\gef"
-    output_path = r"E:\lizepeng\m11.5_gem"
+    output_path = r"E:\m11.5_gem"
     data_list = [os.path.join(data_path, i) for i in os.listdir(data_path)]
     for data in data_list:
         geftogem(data, output_path)

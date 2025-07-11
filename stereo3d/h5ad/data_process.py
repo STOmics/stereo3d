@@ -5,7 +5,6 @@ import anndata
 import pandas as pd
 import numpy as np
 import os
-import re
 import glog
 from openpyxl import load_workbook
 from typing import Optional
@@ -16,6 +15,7 @@ except ImportError:
 import re
 import gc
 
+
 def adata_list_input(
     h5ad_path: str,
     slice_records_file: str,
@@ -24,7 +24,7 @@ def adata_list_input(
     spatial_key: str = 'spatial',
     bin_type: Literal["square_bin", "cell_bin"] = "square_bin",
     binsize: Optional[int] = None,
-    x_y_unit: str= '500nm',
+    x_y_unit: str = '500nm',
     z_data: bool = False,
     z_unit: str = '1mm',
     z_thickness: str = '10um',
@@ -34,31 +34,33 @@ def adata_list_input(
 
     Args:   
         h5ad_path: path of input of .h5ad files.
+        slice_records_file:
+        spatial_mm_key:
+        bin_type:
+        binsize:
+        x_y_unit:
+        z_data:
+        z_unit:
+        z_thickness:
         out_path:  path of output of update .h5ad files.
-        cutter_path: path of cutter transaction table, contain two columns,'h5ad_file_name' and 'z axis data',(Only used when 'z_data=False'.)
-        h5ad_col: the column name  of h5ad file in cutter transaction table.(Only used when 'z_data=False'.)
-        z_col: the column name  of z axis data in cutter transaction table.(Only used when 'z_data=False'.)
         spatial_key: The column key in .obsm, default to be 'spatial'.
-        anno: The column key/name that identifies the grouping information(for example, clusters that correspond to different cell types)of spots.
-        color_anno: The key in .uns, corresponds to a dictionary that map group names to group colors.
 
     Returns:
         a list of adata. and update adata to outpath which format that meets the requirements of 3D flow analysis.
         
     """
 
-    ### 01.sort h5ad file names
+    # 01.sort h5ad file names
     A = SliceRecordsParser(slice_records_file)
-    ## h5ad文件重命名
+    # h5ad File Renaming
     A.rename_h5adfile(h5ad_path)
     sorted_file_names = sort_file_names(h5ad_path, suffix='.h5ad')
-    ### 02. add z_data & data_unit & standardize the units of x,y,z.
-    ## add info to adata.
+    # 02. add z_data & data_unit & standardize the units of x,y,z.
+    # add info to adata.
     adata_list = []
     for index, file in enumerate(sorted_file_names):
         with open(os.path.join(h5ad_path, file), 'r') as f:
             adata = ad.read(os.path.join(h5ad_path, file))
-            ##
             if x_y_unit == '500nm':
                 adata.obsm[spatial_mm_key] = np.zeros((adata.shape[0], 2))
                 adata.obsm[spatial_mm_key][:, 0] = adata.obsm[spatial_key][:, 0] * 500 / 1000000
@@ -66,13 +68,13 @@ def adata_list_input(
             else:
                 raise ValueError(f"Users need to do their own coordinate unit conversion")
             
-            ## add z-axis data from cutter transaction table to .spatial[:,2]
+            # add z-axis data from cutter transaction table to .spatial[:,2]
             if z_data == False:
                 z_value = [A.data['Z_index'].tolist()[index]] * adata.obs.shape[0]
                 z_value = np.array(z_value).reshape(-1, 1)
                 adata.obsm[spatial_mm_key] = np.hstack([adata.obsm[spatial_mm_key], z_value])
 
-            ## standardize the units of all x,y,z. add data_type to .uns
+            # standardize the units of all x,y,z. add data_type to .uns
             if bin_type == "square_bin":
                 adata.uns['data_unit'] = {'binsize': binsize, 'z_size': z_thickness, 'unit': z_unit}
             elif bin_type == "cell_bin":
@@ -80,7 +82,7 @@ def adata_list_input(
             else:
                 raise ValueError(f"the type of bin_type should be provided, 'square_bin' or 'cell_bin'")
 
-            ## update adata
+            # update adata
             # if not os.path.isdir(out_path):
             #     os.mkdir(out_path)
             adata.write(os.path.join(out_path, file))
@@ -111,8 +113,9 @@ def sort_file_names(file_path, suffix: Literal['.h5ad', '.gef', '.gem', '.tif'])
         sorted_file_names = sorted(file_dict, key=file_dict.get)
     return sorted_file_names
 
-### 解析切刀流水表
+
 class SliceRecordsParser:
+    """ Analyze the cutter flow table """
     def __init__(self, slice_records_file):
         self.slice_records_file = slice_records_file
         wb = load_workbook(self.slice_records_file)
@@ -140,7 +143,7 @@ class SliceRecordsParser:
                               path_outdir: str,
                               file_suffixs='.tissue.gef'):
         chip_id_list = self.data.SSDNA_ChipNo
-        files = os.listdir(sap_input) ##正常使用时，‘/data/input’
+        files = os.listdir(sap_input)  # In normal use, ‘/data/input’
         absolute_path_list = open(os.path.join(path_outdir, 'absolute_path_list.txt'), 'w')
         for chip_id in chip_id_list:
             for root, dirs, files in os.walk(sap_input):
@@ -153,24 +156,33 @@ class SliceRecordsParser:
         glog.info(f'Save path list to: {list_path}')
     
     def rename_h5adfile(self, h5ad_path):
-        data = self.data
-        relation = dict(zip(data['SSDNA_SN'].tolist(), data['SSDNA_ChipNo'].tolist()))
-        file_list = sort_file_names(h5ad_path, suffix='.h5ad')
         def _rename_files(file_list, relation):
             for file_name in file_list:
                 first_part = file_name[:file_name.index('_')]
                 for key in relation:
                     if relation[key] == first_part:
                         new_name = key + '_' + file_name
-                        os.rename(h5ad_path +'/'+ file_name, h5ad_path +'/'+ new_name)
+                        os.rename(h5ad_path + '/' + file_name, h5ad_path + '/' + new_name)
+        data = self.data
+        relation = dict(zip(data['SSDNA_SN'].tolist(), data['SSDNA_ChipNo'].tolist()))
+        file_list = sort_file_names(h5ad_path, suffix='.h5ad')
         _rename_files(file_list, relation)
 
 
-def read_and_parse_by_celltype(outdir:str,spatial_regis:str,anno:str, celltype:str,h5ad_path:Optional[str] = None, adata_list:Optional[list] = None, sc_xyz:Optional[list] = None):
+def read_and_parse_by_celltype(outdir: str,
+                               spatial_regis: str,
+                               anno: str,
+                               celltype: str,
+                               h5ad_path: Optional[str] = None,
+                               adata_list: Optional[list] = None,
+                               sc_xyz: Optional[list] = None):
     """
     Get x,y,z,anno columns as mesh input.
 
-    Args:   
+    Args:
+        outdir:
+        adata_list:
+        celltype:
         h5ad_path: path of input of .h5ad files.
         spatial_regis: The column key in .obsm, default to be 'spatial_regis'. note that x,y,z 
         anno: The column key/name that identifies the grouping information(for example, clusters that correspond to different cell types)of spots.
@@ -186,7 +198,7 @@ def read_and_parse_by_celltype(outdir:str,spatial_regis:str,anno:str, celltype:s
     zli = []
     tyli = []
     if h5ad_path:
-        fnames =sort_file_names(file_path=h5ad_path,suffix='.h5ad')
+        fnames = sort_file_names(file_path=h5ad_path, suffix='.h5ad')
         adata_list = []
         for fname in fnames:
             path = os.path.join(h5ad_path, fname)
@@ -209,10 +221,10 @@ def read_and_parse_by_celltype(outdir:str,spatial_regis:str,anno:str, celltype:s
             sc_xyz[0] = 1000/(binsize*0.5)
             sc_xyz[1] = 1000/(binsize*0.5)
             sc_xyz[2] = 1000/z_size
-        x = (adata[adata.obs[anno]==celltype].obsm[spatial_regis][:, 0]*sc_xyz[0]).tolist()
-        y = (adata[adata.obs[anno]==celltype].obsm[spatial_regis][:, 1]*sc_xyz[1]).tolist()
-        z = (adata[adata.obs[anno]==celltype].obsm[spatial_regis][:, 2]*sc_xyz[2]).tolist()
-        ty = adata[adata.obs[anno]==celltype].obs[anno].tolist()
+        x = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 0]*sc_xyz[0]).tolist()
+        y = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 1]*sc_xyz[1]).tolist()
+        z = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 2]*sc_xyz[2]).tolist()
+        ty = adata[adata.obs[anno] == celltype].obs[anno].tolist()
         del adata
         gc.collect()
 
@@ -232,9 +244,9 @@ def read_and_parse_by_celltype(outdir:str,spatial_regis:str,anno:str, celltype:s
         del ty
         gc.collect()
     
-    ## output
+    # output
     outdir = './'
-    data = np.column_stack((xli,yli,zli,tyli))
+    data = np.column_stack((xli, yli, zli, tyli))
     with open(outdir+celltype+'_info.txt', 'w') as O:
         for row in data:
             O.write('\t'.join([str(elem) for elem in row]) + '\n')

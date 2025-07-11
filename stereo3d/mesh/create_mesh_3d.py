@@ -11,9 +11,6 @@ from glob import glob
 
 # ---------------points 3d create--------------- #
 def contours_in(contours, shape):
-    """
-    没啥说的
-    """
     p = np.zeros(shape=shape, dtype=np.uint8)
     cv.drawContours(p, contours, -1, 255, -1)
     a = np.where(p == 255)[0].reshape(-1, 1)
@@ -50,13 +47,13 @@ def get_mask_3d_points(mask_path_list,
                        output_path = None):
     """
     Args:
-        mask_path_list: list 排序完成的mask路径
-        mask_z_interval: list mask图像对应的z轴数值 - mm
-        pixel4mm: float mask图像每个像素所代表的物理距离 - mm (一般是500nm)
-        z_interval: 单位切片厚度 - mm
+        mask_path_list: list Sorted mask path
+        mask_z_interval: list mask The z-axis value corresponding to the image - mm
+        pixel4mm: float mask The physical distance represented by each pixel of the image - mm (Usually 500nm)
+        z_interval: Unit slice thickness - mm
         output_path:
     Returns:
-        points_3d: 所有的3d点
+        points_3d: All 3d points
     """
 
     points_3d_edge = None
@@ -140,10 +137,10 @@ def _dense2sparse(points):
 
 def _fix_points_3d(points_3d, z_interval):
     """
-    对于切片时跳片的3d点做补全, 使用上一片填充
+    For 3D points that jump during slicing, use the previous slice to fill
     Args:
         points_3d:
-        z_interval: 切片间隔 - mm
+        z_interval: Slice interval - mm
     Return:
         points_3d：
     """
@@ -202,7 +199,7 @@ def _delete_outlier(points_3d, delta = 1.5):
     return new_points_3d
 
 
-##-----------------mesh faction-----------------##
+# -----------------mesh faction----------------- ##
 def _mesh_voxel_down_sample(pcd, voxel_size):
     pcd = pcd.voxel_down_sample(voxel_size)
     return pcd
@@ -214,8 +211,8 @@ def _points_3d_read(points,
     """
     Args:
         points:
-        random: None | int  随机值比例
-        z_interval: float z轴平均单位，若有则补全空余轴
+        random: None | int Random value ratio
+        z_interval: z-axis average unit, if any, fill in the empty axis
     Returns:
         pcd: class - point cloud
     """
@@ -246,11 +243,11 @@ def _mesh_outlier_removal(pcd,
     """
     Args:
         pcd:
-        method: 统计滤波 statistical | 半径滤波 radius
-        num_neighbors: statistical - K邻域点的个数
-        num_points: radius - 领域半径内最少点数，低于该值为噪声点
-        std_ratio: statistical - 标准差乘数
-        radius: radius - 领域半径大小（与pcd的x, y取值范围关系较大）
+        method: Statistical filtering statistical | Filter radius
+        num_neighbors: statistical - The number of K neighboring points
+        num_points: radius - The minimum number of points within the area radius, values ​​below this value are noise points
+        std_ratio: statistical - Standard Deviation Multiplier
+        radius: radius - The size of the field radius (largely related to the x and y value range of pcd)
     Returns:
         sor_pcd:
         outlier_pcd:
@@ -277,9 +274,9 @@ def _mesh_create(pcd,
     Args:
         pcd:
         method: Alpha Shape | Ball pivoting
-        alpha: Alpha - 参数控制
-        radii: Ball - 参数控制
-        show_mesh: 是否展示mesh
+        alpha: Alpha - Parameter Control
+        radii: Ball - Parameter Control
+        show_mesh: Whether to display mesh
     Returns:
         mesh:
     """
@@ -309,9 +306,9 @@ def _mesh_filter_smooth(mesh,
     Args:
         mesh:
         method: simple | laplacian
-        simple_num: simple - 平滑控制 迭代平滑
-        lambda_filter: laplacian - 平滑控制
-        show_mesh: 是否展示mesh
+        simple_num: simple - Smoothing Control Iterative Smoothing
+        lambda_filter: laplacian - Smooth control
+        show_mesh: Whether to display mesh
     Returns:
         mesh:
     """
@@ -332,17 +329,17 @@ def _mesh_filter_smooth(mesh,
 
 def points_3d_to_mesh(points_3d,
                       z_interval,
-                      mesh_scale = 1,
-                      down_size = None,
-                      output_path = None,
+                      mesh_scale=1,
+                      down_size=None,
+                      output_path=None,
                       show_mesh=False,
                       name=None):
     """
     Args:
-        points_3d: xyz点
-        z_interval: 切片间隔尺寸 - mm
-        mesh_scale: mesh放大的倍率
-        down_size: 体素下采样倍率
+        points_3d: xyz
+        z_interval: Slice interval size - mm
+        mesh_scale: mesh Magnification
+        down_size: Voxel downsampling factor
         output_path:
         show_mesh:
         name:
@@ -355,25 +352,25 @@ def points_3d_to_mesh(points_3d,
     if show_mesh:
         o3d.visualization.draw_geometries([pcd], mesh_show_back_face=True)
 
-    ################ 体素下采样
+    # Voxel downsampling
     if down_size is not None:
         pcd = _mesh_voxel_down_sample(pcd, z_interval * down_size)
 
-    ###################### 滤波
+    #  Filtering
     # pcd, _ = _mesh_outlier_removal(pcd, method="stat")
 
-    ########################## Mesh构建
-    alpha = np.pi * z_interval * (1 if not down_size else down_size)  # 半径控制 越小越棱角越少 但不能低于片与片间隔
+    #  Mesh Build
+    alpha = np.pi * z_interval * (1 if not down_size else down_size)  # Radius control: The smaller the radius, the less angular it is, but it cannot be lower than the interval between the slices.
     radii = [0.005, 0.01, 0.02]
     mesh = _mesh_create(pcd, method='alpha_shape', alpha=alpha, show_mesh=show_mesh)
 
-    ###############Mesh 平滑
+    # Mesh smooth
     mesh1 = _mesh_filter_smooth(mesh, method='simple', show_mesh=show_mesh)
 
-    mesh1 = mesh1.scale(mesh_scale, mesh1.get_center())  # 尺度控制
+    mesh1 = mesh1.scale(mesh_scale, mesh1.get_center())  # Scale Control
     mesh1.triangle_normals = o3d.utility.Vector3dVector([])
 
-    # mesh1.paint_uniform_color([1, 0.706, 0])  # 涂色
+    # mesh1.paint_uniform_color([1, 0.706, 0])  # Coloring
 
     name = name if name else "mask_mesh"
     o3d.io.write_triangle_mesh(os.path.join(output_path, f"{name}.obj"), mesh1)
@@ -382,7 +379,7 @@ def points_3d_to_mesh(points_3d,
 if __name__ == "__main__":
     from stereo3d.file.slice import SliceSequence
 
-    # xlsx = r"E:\lizepeng\m115\E-ST20220923002_slice_records_20221110.xlsx"
+    # xlsx = r"E:\m115\E-ST20220923002_slice_records_20221110.xlsx"
     # ss = SliceSequence()
     # ss.from_xlsx(file_path=xlsx)
     # z_interval_dict = ss.get_z_interval(index='bf')
@@ -390,7 +387,7 @@ if __name__ == "__main__":
     #
     # pixel4mm = 0.0005
     #
-    # mask_path = r"F:\lizepeng\1"
+    # mask_path = r"F:\1"
     # mask_path_list = glob(os.path.join(mask_path, "*.tif"))
     # mask_path_list = sorted(mask_path_list, key=lambda x: int(os.path.basename(x).split('.')[0]))
     #
@@ -401,7 +398,7 @@ if __name__ == "__main__":
     #         if int(float(k)) == ind:
     #             mask_z_interval.append(v)
     # ------------------ #
-    mask_path = r"D:\02.data\luqin\E14-16h_a_bin1_image_regis"
+    mask_path = r"D:\02.data\E14-16h_a_bin1_image_regis"
     mask_path_list = glob(os.path.join(mask_path, "*.tif"))
     mask_path_list = sorted(mask_path_list)
     mask_z_interval = [i/1000 for i in range(0, 128, 8)]
@@ -412,12 +409,12 @@ if __name__ == "__main__":
                                    mask_z_interval,
                                    z_interval=z_interval,
                                    pixel4mm=pixel4mm,
-                                   output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis")
+                                   output_path=r"D:\02.data\E14-16h_a_bin1_image_regis")
 
-    # points_3d = np.loadtxt(r"E:\lizepeng\m115\m11.5\mask_3d_points_80.txt")
+    # points_3d = np.loadtxt(r"E:\m115\m11.5\mask_3d_points_80.txt")
 
     points_3d_to_mesh(points_3d,
                       z_interval=z_interval,
                       mesh_scale=1,
-                      output_path=r"D:\02.data\luqin\E14-16h_a_bin1_image_regis")
+                      output_path=r"D:\02.data\E14-16h_a_bin1_image_regis")
 

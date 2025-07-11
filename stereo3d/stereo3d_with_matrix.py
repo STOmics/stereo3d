@@ -1,7 +1,6 @@
 import glog
 import argparse
 import os
-from glob import glob
 import tqdm
 import sys
 
@@ -117,7 +116,7 @@ class Stereo3DwithTissueMatrix(object):
         return align_output_path
     
     def _transform_gem(self, ):
-        from stereo3d.gem.transform import trans_gem_by_json
+        from stereo3d.gem.transform import trans_matrix_by_json
 
         # Gem path
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
@@ -126,12 +125,12 @@ class Stereo3DwithTissueMatrix(object):
         os.makedirs(gem_save_path, exist_ok=True)
 
         if self._overwrite_flag:
-            trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+            trans_matrix_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
             glog.info('Trans gem is overwrite the files.')
         else:
             files_num = len(os.listdir(gem_save_path))
             if files_num != len(self._matrix):
-                trans_gem_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
+                trans_matrix_by_json(self._matrix, crop_json_path, align_json_path, gem_save_path)
                 glog.info('Trans gem updated.')
             else:
                 glog.info("Files all exist, skip trans gem.")
@@ -285,12 +284,6 @@ PROG_VERSION = 'v0.0.1'
 
 
 if __name__ == '__main__':
-    # E:\app\anaconda\setup\custom\envs\stereo3d\python stereo3d_with_matrix.py
-    # --matrix_path C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\01.gem
-    # --tissue_mask C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\00.mask
-    # --record_sheet C:\Users\BGI\Desktop\stereo3d-test\gy\00.data\E-ST20220923002_slice_records_E14_16.xlsx
-    # --output C:\Users\BGI\Desktop\stereo3d-test\output
-
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--version", action="version", version=PROG_VERSION)
     parser.add_argument("-matrix", "--matrix_path", action="store", dest="matrix_path", type=str, required=True,

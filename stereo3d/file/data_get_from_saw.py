@@ -1,20 +1,16 @@
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd
-import numpy as np
 import os
-import re
 import glog
 from openpyxl import load_workbook
-from typing import Optional
-import shutil
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
 
-### parse slice records
+# parse slice records
 class SliceRecordsParser:
     def __init__(self, slice_records_file):
         self.slice_records_file = slice_records_file
@@ -43,7 +39,7 @@ class SliceRecordsParser:
                              path_outdir: str,
                              file_suffixs = '.tissue.gef'):
         chip_id_list = self.data.SSDNA_ChipNo
-        files = os.listdir(sap_input)  ##Normally，‘/data/input’
+        files = os.listdir(sap_input)  # Normally，‘/data/input’
         absolute_path_list = open(os.path.join(path_outdir, 'tissuegef_path_list.txt'), 'w')
         for chip_id in chip_id_list:
             for root, dirs, files in os.walk(sap_input):
@@ -60,7 +56,7 @@ class SliceRecordsParser:
                               path_outdir: str,
                               file_suffixs = '_tissue_cut.tif'):
         chip_id_list = self.data.SSDNA_ChipNo
-        files = os.listdir(sap_input)  ##Normally，‘/data/input’
+        files = os.listdir(sap_input)  # Normally，‘/data/input’
         absolute_path_list = open(os.path.join(path_outdir, 'tissuemask_path_list.txt'), 'w')
         for chip_id in chip_id_list:
             for root, dirs, files in os.walk(sap_input):

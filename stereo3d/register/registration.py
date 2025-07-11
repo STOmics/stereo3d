@@ -20,10 +20,10 @@ class RigidTrans:
                  translate_only=False):
         """
         Args:
-            src_image: str | array 待配准图像
-            dst_image: str | array 目标图像
-            scale_by_dst: float | None 待配准图像相较于目标图像比例
-            translate_only: True | False 是否只有平移
+            src_image: str | array Image to be registered
+            dst_image: str | array Target Image
+            scale_by_dst: float | None The ratio of the image to be registered to the target image
+            translate_only: True | False Is it only translation?
         """
         if isinstance(src_image, str):
             if os.path.isfile(src_image):
@@ -43,12 +43,12 @@ class RigidTrans:
     def find_rigid_trans(self, is_flip=False, down_sampling=2):
         """
         Args:
-            is_flip: bool - 是否需要镜像（此处默认水平镜像）
-            down_sampling: int - 用于配准的下采样倍率
+            is_flip: bool - Whether to mirror (horizontal mirroring is the default)
+            down_sampling: int - Downsampling factor for registration
         Returns:
-            new_image: array - 配准图像
-            trans_mat: array [3 * 3] - 变换矩阵
-            best_score: float - 配准分数
+            new_image: array - Registering images
+            trans_mat: array [3 * 3] - Transformation Matrix
+            best_score: float - Registration score
         """
         if self.scale2dst is None:
             self.scale2dst = self.find_scale(self.src_image, self.dst_image)
@@ -58,16 +58,16 @@ class RigidTrans:
         _src_image = self._scale_image(_src_image, 1 / down_sampling)
         _dst_image = self._scale_image(self.dst_image, 1 / down_sampling)
 
-        # 相对scale变换矩阵
+        # Relative scale transformation matrix
         scale_mat = np.eye(3)
         scale_mat[:2, :2] = scale_mat[:2, :2] * self.scale2dst
 
-        # 下采样scale变换矩阵
+        # Downsampling scale transformation matrix
         down_scale_mat = np.eye(3)
         down_scale_mat[:2, :2] = down_scale_mat[:2, :2] / down_sampling
         down_scale_mat_inv = np.matrix(down_scale_mat).I
 
-        # 后续旋转位移变换矩阵
+        # Subsequent rotation and displacement transformation matrix
         trans_mat = np.eye(3)
 
         if self.translate_only:
@@ -202,7 +202,7 @@ class RigidTrans:
 
     @staticmethod
     def _transform_img(img, transl, ror_center, ror_rad, canvas_shape, scale_ratio = 1):
-        """图像变换"""
+        """ Image Transformation """
         # transl: np.array([height, width])
         M_t = np.float32([[1, 0, transl[1]], [0, 1, transl[0]]])
         translated = cv.warpAffine(img, M_t, (canvas_shape[1], canvas_shape[0]))
@@ -215,9 +215,7 @@ class RigidTrans:
 
     @staticmethod
     def _scale_image(image, scale):
-        """
-        比例
-        """
+        """ scale """
         if scale == 1:
             return image.copy()
         h, w = image.shape[:2]
@@ -238,7 +236,7 @@ class RigidTrans:
     @staticmethod
     def find_orien_and_center_from_moment(img, contour=True):
         """
-        输入为单通道矩阵,注意opencv和矩阵的坐标系x和y掉个
+        The input is a single-channel matrix. Note that the coordinate systems x and y of opencv and the matrix are swapped.
         """
         if contour:
             contours, _ = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -263,7 +261,7 @@ class RigidTrans:
 
     @staticmethod
     def calculate_mutual_area(img1, img2):
-        """交并面积计算"""
+        """ Intersection area calculation """
         sh_0 = max([img1.shape[0], img2.shape[0]])
         sh_1 = max([img1.shape[1], img2.shape[1]])
 
@@ -405,7 +403,7 @@ def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
             )
 
             tif.imwrite(os.path.join(output_path, name), new_image)
-    # 以下两种情况一定要文件命名一样
+    # The following two cases must have the same file name
     elif len(images_list) < len(dst_list):
         for image in tqdm(images_list, desc="Align"):
             name = os.path.basename(image)
@@ -444,7 +442,7 @@ def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
 
 
 def _search_mat(image, images_list, info_dict):
-    """寻找文件名最近索引的mat矩阵"""
+    """ Find the mat matrix with the nearest index of the file name """
     index_src = images_list.index(image)
     index_list = list()
     for ind, dst in enumerate(images_list):
@@ -526,12 +524,12 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
 def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
     """
-    配准一系列切片图像或掩码图像
+    Register a series of slice images or mask images
     Args:
-        slices_path: str - 最好是按顺序排列好
+        slices_path: str - It is best to arrange them in order
         output_path:
-        dst_path: str - 若有, 则与slices_path配准
-        scale2dst: float | int | None - slices_path 与 dst_path 图像间的尺度
+        dst_path: str - If yes, align with slices_path
+        scale2dst: float | int | None - slices_path and dst_path. The scale between images
     """
     os.makedirs(output_path, exist_ok=True)
 
@@ -558,9 +556,9 @@ def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
 
 
 if __name__ == "__main__":
-    slices_path = r"D:\02.data\luqin\E14-16h_a_bin1_image_mask"
-    # dst_path = r"F:\lizepeng\ssdna_auto"
-    output_path = r"D:\02.data\luqin\E14-16h_a_bin1_image_regis"
+    slices_path = r"D:\02.data\E14-16h_a_bin1_image_mask"
+    # dst_path = r"F:\ssdna_auto"
+    output_path = r"D:\02.data\E14-16h_a_bin1_image_regis"
     align_slices(slices_path, output_path)  # , dst_path, scale2dst=0.0038/0.0005)
 
     # with open(r"C:\Users\87393\Downloads\manual_registration\rigid.xml", 'r') as file:

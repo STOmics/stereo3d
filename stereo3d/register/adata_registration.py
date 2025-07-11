@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 🌟 Create Time  : 2025/6/3 17:25
-🌟 Author  : CB🐂🐎 - lizepeng
 🌟 File  : adata_registration.py
 🌟 Description  : 
 🌟 Key Words  :
@@ -66,7 +65,7 @@ class AlignSlicer:
     def plot(self, adata_list, spatial):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection = '3d')
-        ## plot
+        # plot
         for adata in adata_list:
             data = adata.obsm[spatial]
             labels = adata.obs[self.anno].tolist()
@@ -74,7 +73,7 @@ class AlignSlicer:
 
             colors = [adata.uns[self.anno_color][cat_list.index(label)] for label in labels]
             ax.scatter(data[:, 0], data[:, 1], c = colors, marker = 'o', s = 3, alpha = 0.8)
-        ## add axis label.
+        # add axis label.
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
@@ -83,14 +82,14 @@ class AlignSlicer:
         plt.show()
         plt.close(fig)
 
-    ## x,y coordinates are taken for the function of registration
+    # x,y coordinates are taken for the function of registration
     def align_2d(self):
         adata_st_list = copy.deepcopy(self.adata_list)
         for i in range(len(adata_st_list)):
             adata_st_list[i].obsm[self.spatial_key] = np.delete(adata_st_list[i].obsm[self.spatial_key], 2, axis = 1)
         return adata_st_list
 
-    ## add z coordinates
+    # add z coordinates
     def align_3d(self, adata_st_list):
         sorted_file_names = sort_file_names(self.h5ad_path, suffix = '.h5ad')
         for i, (x, y) in enumerate(zip(sorted_file_names, adata_st_list)):
@@ -140,13 +139,13 @@ class Paste(AlignSlicer):
 
 def align(
         adata,
-        key = 'spatial_mm',
-        regis_key = 'spatial_regis',
-        anno = 'auto_anno',
-        anno_color = 'anno_color',
-        method = 'paste',
-        file_path = '',
-        output_path = '',
+        key='spatial_mm',
+        regis_key='spatial_regis',
+        anno='auto_anno',
+        anno_color='anno_color',
+        method='paste',
+        file_path='',
+        output_path='',
 ):
     """
     Args:
@@ -170,12 +169,12 @@ def align(
 
     if method == 'paste':
         paste = Paste(adata_list,
-                      h5ad_path = file_path,
-                      spatial_key = key,
+                      h5ad_path=file_path,
+                      spatial_key=key,
                       out_dir = output_path,
-                      spatial_regis_key = regis_key,
-                      anno = anno,
-                      anno_color = anno_color)
+                      spatial_regis_key=regis_key,
+                      anno=anno,
+                      anno_color=anno_color)
 
         adata_list, pis = paste.align()
         align_accur = paste_align_accuracy(adata_list, pis, anno = anno)
@@ -217,14 +216,14 @@ if __name__ == '__main__':
 
     adata_list = [ad.read(i) for i in sorted_file_names]
     align(
-        adata = adata_list,
-        key = 'spatial_mm',
-        regis_key = 'spatial_regis',
-        anno = 'leiden',
-        anno_color = 'leiden_colors',
-        method = 'paste',
-        file_path = adata_path,
-        output_path = output_path,
+        adata=adata_list,
+        key='spatial_mm',
+        regis_key='spatial_regis',
+        anno='leiden',
+        anno_color='leiden_colors',
+        method='paste',
+        file_path=adata_path,
+        output_path=output_path,
     )
 
     print(1)

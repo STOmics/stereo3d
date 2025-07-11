@@ -1,12 +1,14 @@
 import logging
 import glog
+from typing import Optional
+import anndata
+import gc
 
 import anndata as ad
 import os
 import scanpy as sc
 from matplotlib import pyplot as plt
 from anndata import AnnData
-import glob
 import tqdm
 import numpy as np
 
@@ -60,12 +62,6 @@ def uniform_cluster_color(h5ad_list: list, out_path:str):
     return adata_all.obs['leiden'].cat.categories.tolist()
 
 
-from typing import Optional
-import anndata
-import re
-import gc
-
-
 def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, celltype: str,
                                h5ad_list: Optional[list] = None, adata_list: Optional[list] = None,
                                sc_xyz: Optional[list] = None):
@@ -73,12 +69,15 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
     Get x,y,z,anno columns as mesh input.
 
     Args:
-        h5ad_path: path of input of .h5ad files.
+        outdir:
+        h5ad_list: path of input of .h5ad files.
+        adata_list:
         spatial_regis: The column key in .obsm, default to be 'spatial_regis'. note that x,y,z
-        anno: The column key/name that identifies the grouping information(for example, clusters that correspond to different cell types)of spots.
-        sc_xyz:The scale by which the spatial points in h5ad is scaled. when the `sc_xyz` is list, the model is scaled along the xyz
-                axis at different scales. If `sc_xyz` is None, there will be by scale by defult parameter.
-
+        anno: The column key/name that identifies the grouping information(for example, clusters that correspond
+              to different cell types)of spots.
+        sc_xyz:The scale by which the spatial points in h5ad is scaled. when the `sc_xyz` is list, the model is
+               scaled along the xyz axis at different scales. If `sc_xyz` is None, there will be by scale by
+               defult parameter.
 
     Returns:
         a list of adata. and update adata to outpath which format that meets the requirements of 3D flow analysis.
@@ -177,10 +176,6 @@ def organ_mesh(
 
 
 if __name__ == '__main__':
-    # h5ad_path = r'C:\Users\BGI\Desktop\stereo3d-test\output1\05.cluster'
-    # out_path = r'C:\Users\BGI\Desktop\stereo3d-test\output1\06.color'
-    # uniform_cluster_color(h5ad_path, out_path)
-
     organ_path = r'C:\Users\BGI\Desktop\stereo3d-test\output\07.organ\1.txt'
     mesh_output_path = r'C:\Users\BGI\Desktop\stereo3d-test\output\07.organ\1.obj'
     organ_mesh(organ_path, mesh_output_path)

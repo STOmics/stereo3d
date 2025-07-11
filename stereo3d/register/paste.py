@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 🌟 Create Time  : 2025/6/3 16:44
-🌟 Author  : CB🐂🐎 - lizepeng
 🌟 File  : paste.py
 🌟 Description  : 
 🌟 Key Words  :

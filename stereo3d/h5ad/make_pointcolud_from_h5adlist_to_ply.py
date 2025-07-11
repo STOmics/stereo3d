@@ -12,14 +12,15 @@ from scipy.sparse import issparse
 
 def classify_rows(row):  
     """
-    筛选共表达cell
+    Screening of co-expressing cells
     """
     non_zero_columns = row.index[row.ne(0)]  
     return '#'.join(non_zero_columns) 
 
+
 def normalize_array(array,low_percent,high_percent):
     """
-    结合指定上下限对数组进行归一化
+    Normalizes an array by specifying lower and upper bounds
     """
     min_val = np.min(array)
     max_val = np.max(array)
@@ -31,53 +32,51 @@ def normalize_array(array,low_percent,high_percent):
     norm_array[~mask] = 0
     return norm_array
 
+
 def value_to_color(array, crange ,cmap):
     """
-    将一维数组中的数值转换为颜色RGB值。
+    Convert the values in a one-dimensional array to color RGB values.
 
-    参数：
-    value_array: numpy数组，包含要转换为颜色的数值。
-    cmap_name: 字符串，指定要使用的颜色映射名称，默认为 'rainbow'。
+    parameter：
+    value_array: An array containing the values to be converted to colors.
+    cmap_name: String specifying the name of the colormap to use, defaults to 'rainbow'.
 
-    返回：
-    numpy数组，包含每个数值对应的RGB颜色值。
+    return： An array containing the RGB color values corresponding to each value.
 
     """
 
-    low,high=crange
-    # 提取colormap的颜色列表
+    low, high = crange
+    # Extract the color list of the colormap
     
     color_list = [mcolors.rgb2hex(cmap(i)) for i in range(cmap.N)]
 
-    # 将数组归一化到0到1之间
+    # Normalize the array to be between 0 and 1
     norm_array = normalize_array(array,low,high)
 
-    # 获取归一化后的值所对应的索引
+    # Get the index corresponding to the normalized value
     index_array = np.floor(norm_array * (len(color_list)-1)).astype(int)
 
-    # 获取归一化后的值所对应的颜色字符串
+    # Get the color string corresponding to the normalized value
     colors = [color_list[i] for i in index_array]
 
-    # 将十六进制颜色转换为RGB颜色
+    # Convert hexadecimal color to RGB color
     rgb_array = np.array([np.array([int(color[i:i+2], 16)
                          for i in (1, 3, 5)]) for color in colors])
 
-    # 返回对应的颜色值
+    # Returns the corresponding color value
     return rgb_array
 
 
 def color_mix(colora,colorb):
-    """
-    两种颜色混合
-    """
-    mixcolor=[]
+    """ Mixing two colors """
+    mixcolor = []
     rgba = np.array([int(colora[i:i+2], 16) for i in (1, 3, 5)]) 
     rgbb = np.array([int(colorb[i:i+2], 16) for i in (1, 3, 5)]) 
     
     for i in range(3):
-        colorTop=rgba[i]/255
-        colorBottom=rgbb[i]/255
-        newColor=max(colorTop, colorBottom)
+        colorTop = rgba[i]/255
+        colorBottom = rgbb[i]/255
+        newColor = max(colorTop, colorBottom)
         # if(colorTop == 0):
         #     newColor = 0
         # else:
@@ -87,10 +86,9 @@ def color_mix(colora,colorb):
     r, g, b = result
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
+
 def convert_to_mm(df, resolution):
-    """
-    将坐标转换为mm为单位
-    """
+    """ Convert coordinates to mm """
     df['x'] *= resolution[0]
     df['y'] *= resolution[1]
     df['z'] *= resolution[2]
@@ -104,31 +102,34 @@ def convert_to_mm(df, resolution):
 
 def add_zrandom(df, zdistance):
     """
-    给单片数据的z值加上随机偏移， 偏移范围为相邻片最小间距的一半
+    Add a random offset to the z value of a single piece of data. The offset range is half of the minimum spacing between adjacent pieces.
     """
     random.seed(0)
     zdistance /= 1000000
     df['z'] = df['z'].apply(
-        lambda x: x+random.uniform(-zdistance/2, zdistance/2))
+        lambda x: x + random.uniform(-zdistance/2, zdistance/2))
 
     return df
 
 
 def make_celltype_ply_data(inputdata, outputdir, prefix,  position, label, colordict, resolution, zdistance, withvalue, withid):
     """
-    将坐标和分类结果转换成点云文件，分类结果按指定的颜色映射表进行颜色映射。
+    The coordinates and classification results are converted into point cloud files, and the classification results are
+    color mapped according to the specified color mapping table.
 
-    参数：
-    inputdata: 字符串， 存储复用配准后的所有单片h5ad和对应z值的list文本文件。
-    outputdir: 字符串，用于指定输出文件路径。
-    prefix: 字符串, 用于指定输出文件前缀。
-    position: 字符串, 用于读取h5ad中坐标。
-    label: 字符串, 用于读取h5ad中注释结果。
-    colordict: 字符串，用于指定读取colormap的位置。
-    resolution:整型数组， 保存所有片统一坐标系下各轴向坐标单位1的实际物理长度， 单位为nm。
-    zdistance:整型， 保存所有相邻切片间距的最小值。
-    withvalue:布尔， 标记是否需要保存注释类别信息。
-    withid:布尔， 标记是否需要保存全局cellid信息。
+    parameter:
+    inputdata: String, a list text file storing all single-slice h5ad and corresponding z values after multiplexing
+               and registration.
+    outputdir: A string that specifies the output file path.
+    prefix: A string specifying the output file prefix.
+    position: String, used to read coordinates in h5ad.
+    label: String, used to read annotation results in h5ad.
+    colordict: A string that specifies where to read the colormap.
+    resolution: Integer array, saves the actual physical length of each axial coordinate unit 1 in the unified
+                coordinate system of all slices, in nm.
+    zdistance: Integer, saves the minimum value of the distance between all adjacent slices.
+    withvalue: Boolean, whether to save annotation category information.
+    withid: Boolean, indicates whether to save global cellid information.
     
     """
     if os.path.exists(inputdata):
@@ -137,7 +138,7 @@ def make_celltype_ply_data(inputdata, outputdir, prefix,  position, label, color
         color_key = {}
         with open(inputdata, 'r') as f:
             for i, line in enumerate(f):
-                h5ad_path=line[:-1]
+                h5ad_path = line[:-1]
                 # get coordinate x,y and annotation
                 adata = ad.read(h5ad_path)
                 x = adata.obsm[position][:, 0]
@@ -149,8 +150,6 @@ def make_celltype_ply_data(inputdata, outputdir, prefix,  position, label, color
                 if i == 0:
                     label_to_index = {label: index for index, label in enumerate(adata.uns[colordict].keys())}
                     color_key = adata.uns[colordict]
-
-                # merge
 
                 single_df = pd.DataFrame(
                     {'x': x, 'y': y, 'z': z, 'anno': anno})
@@ -185,20 +184,23 @@ def make_celltype_ply_data(inputdata, outputdir, prefix,  position, label, color
 
 def make_geneexp_ply_data(inputdata, outputdir, prefix, position, genename, resolution, zdistance,   cutoff,  withvalue, withid, colorrange, cmap_name='rainbow4'):
     """
-    将坐标和基因表达量转换成点云文件，基因表达量按指定的颜色映射表进行颜色映射。
+    The coordinates and gene expression levels are converted into point cloud files, and the gene expression levels are
+    color mapped according to the specified color mapping table.
 
     参数：
-    inputdata: 字符串， 存储复用配准后的所有单片h5ad和对应z值的list文本文件。
-    outputdir: 字符串，用于指定输出文件路径。
-    prefix: 字符串, 用于指定输出文件前缀。
-    position: 字符串, 用于读取h5ad中坐标。
-    genename:字符串， 用于读取h5ad中的单基因表达量数据。
-    resolution:整型数组， 保存所有片统一坐标系下各轴向坐标单位1的实际物理长度， 单位为nm。
-    zdistance:整型， 保存所有相邻切片间距的最小值。
-    cutoff:浮点型， 用于过滤表达量阈值。
-    withvalue:布尔， 标记是否需要保存表达量强度信息。
-    withid:布尔， 标记是否需要保存全局cellid信息。
-    cmap_name: 字符串，指定要使用的颜色映射名称，默认为 'rainbow4'。
+    inputdata: String, a list text file storing all single-slice h5ad and corresponding z values
+               after multiplexing and registration.
+    outputdir: A string that specifies the output file path.
+    prefix: A string specifying the output file prefix.
+    position: String, used to read coordinates in h5ad.
+    genename: String, used to read single gene expression data in h5ad.
+    resolution: Integer array, saves the actual physical length of each axial coordinate unit 1 in the unified
+                coordinate system of all slices, in nm.
+    zdistance: Integer, saves the minimum value of the distance between all adjacent slices.
+    cutoff: Floating point type, used to filter the expression threshold.
+    withvalue: Boolean, indicating whether to save the expression intensity information.
+    withid: Boolean, indicates whether to save global cellid information.
+    cmap_name: String specifying the name of the colormap to use, defaults to 'rainbow4'.
     """
 
     if os.path.exists(inputdata):
@@ -226,12 +228,9 @@ def make_geneexp_ply_data(inputdata, outputdir, prefix, position, genename, reso
                             print("warning: ", genename, " not in ", h5ad_path)
                             continue
 
-
-                # merge
-
                 single_df = pd.DataFrame(adata.obsm[position])
-                single_df.columns=['x','y','z']
-                single_df['exp']=exp
+                single_df.columns = ['x', 'y', 'z']
+                single_df['exp'] = exp
                 if withid:
                     slice_id = np.full(single_df.shape[0], int(i))
                     single_df['slice_id'] = slice_id
@@ -242,7 +241,7 @@ def make_geneexp_ply_data(inputdata, outputdir, prefix, position, genename, reso
             # filter null data
             gene_df = gene_df[gene_df['exp'] != 0]
 
-            #filter low data
+            # filter low data
             gene_df = gene_df[gene_df['exp'] >= cutoff]
             gene_df=gene_df.reset_index()
             if gene_df.shape[0] == 0:
@@ -270,20 +269,23 @@ def make_geneexp_ply_data(inputdata, outputdir, prefix, position, genename, reso
 
 def make_multi_geneexp_ply_data(inputdata, outputdir, prefix, position, genename_list, resolution, zdistance,  withvalue, withid, colorrange, color_list):
     """
-    将坐标和基因表达量转换成点云文件，基因表达量按指定的颜色映射表进行颜色映射。
+    The coordinates and gene expression levels are converted into point cloud files, and the gene expression levels are
+    color mapped according to the specified color mapping table.
 
-    参数：
-    inputdata: 字符串， 存储复用配准后的所有单片h5ad和对应z值的list文本文件。
-    outputdir: 字符串，用于指定输出文件路径。
-    prefix: 字符串, 用于指定输出文件前缀。
-    position: 字符串, 用于读取h5ad中坐标。
-    genename_list: 列表， 用于读取h5ad中的单基因表达量数据。
-    resolution:整型数组， 保存所有片统一坐标系下各轴向坐标单位1的实际物理长度， 单位为nm。
-    zdistance:整型， 保存所有相邻切片间距的最小值。
-    cutoff:浮点型， 用于过滤表达量阈值。
-    withvalue:布尔， 标记是否需要保存表达量强度信息。
-    withid:布尔， 标记是否需要保存全局cellid信息。
-    cmap_name: 字符串，指定要使用的颜色映射名称，默认为 []'rainbow4'。
+    parameter：
+    inputdata: String, a list text file storing all single-slice h5ad and corresponding z values after multiplexing
+               and registration.
+    outputdir: A string that specifies the output file path.
+    prefix: A string specifying the output file prefix.
+    position: String, used to read coordinates in h5ad.
+    genename_list: List, used to read single gene expression data in h5ad.
+    resolution: Integer array, saves the actual physical length of each axial coordinate unit 1 in the unified coordinate
+                system of all slices, in nm.
+    zdistance: Integer, saves the minimum value of the distance between all adjacent slices.
+    cutoff: Floating point type, used to filter the expression threshold.
+    withvalue: Boolean, indicating whether to save the expression intensity information.
+    withid: Boolean, indicates whether to save global cellid information.
+    cmap_name: String specifying the name of the colormap to use, defaults to []. 'rainbow4'.
     """
 
     if os.path.exists(inputdata):
@@ -311,8 +313,7 @@ def make_multi_geneexp_ply_data(inputdata, outputdir, prefix, position, genename
                     single_df['bin_id'] = single_df.index.astype('float')
                 gene_df = gene_df.append(single_df)
                 print("load ", h5ad_path, " done!")
-            
-            
+
             # filter null data
             filtered_gene_df = gene_df[gene_df[genename_list].any(axis=1) != 0]  
             filtered_gene_df['Classification'] = filtered_gene_df[genename_list].apply(classify_rows, axis=1) 
@@ -325,41 +326,42 @@ def make_multi_geneexp_ply_data(inputdata, outputdir, prefix, position, genename
 
             # save to ply file
             for i in range(cl.shape[0]):
-                sub_gene_df=filtered_gene_df[filtered_gene_df['Classification']==cl[i]][['x','y','z']]
+                sub_gene_df = filtered_gene_df[filtered_gene_df['Classification'] == cl[i]][['x', 'y', 'z']]
                 if '#' in cl[i]:
-                    multi_list=cl[i].split('#')
-                    sub_gene_df['exp'] = filtered_gene_df[filtered_gene_df['Classification']==cl[i]][multi_list].apply(lambda x: x.sum(), axis=1)  
-                    merge_color=color_dict[multi_list[0]]
-                    for j in range(1,len(multi_list)):
-                        merge_color=color_mix(merge_color,color_dict[multi_list[j]])
-                    cmap=mcolors.LinearSegmentedColormap.from_list("mycmap", ['#ffffff',merge_color])
+                    multi_list = cl[i].split('#')
+                    sub_gene_df['exp'] = \
+                        filtered_gene_df[filtered_gene_df['Classification'] == cl[i]][multi_list].apply(lambda x: x.sum(), axis=1)
+                    merge_color = color_dict[multi_list[0]]
+                    for j in range(1, len(multi_list)):
+                        merge_color = color_mix(merge_color, color_dict[multi_list[j]])
+                    cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", ['#ffffff', merge_color])
                 else:
-                    sub_gene_df['exp']=filtered_gene_df[filtered_gene_df['Classification']==cl[i]][cl[i]]
-                    cmap=mcolors.LinearSegmentedColormap.from_list("mycmap", ['#ffffff',color_dict[cl[i]]])
+                    sub_gene_df['exp'] = filtered_gene_df[filtered_gene_df['Classification'] == cl[i]][cl[i]]
+                    cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", ['#ffffff', color_dict[cl[i]]])
                     
                 sub_gene_df['cell_color'] = sub_gene_df['exp']/sub_gene_df['exp'].max()
-                sub_gene_df=sub_gene_df.reset_index()  
+                sub_gene_df = sub_gene_df.reset_index()
                 color_df = pd.DataFrame(value_to_color(
-                        np.array(sub_gene_df['cell_color']),colorrange, cmap), columns=['R', 'G', 'B'])
+                        np.array(sub_gene_df['cell_color']), colorrange, cmap), columns=['R', 'G', 'B'])
                 sub_gene_df = pd.concat([sub_gene_df, color_df], axis=1)
 
-                save_ply(outputdir, sub_gene_df , prefix, cl[i], 1, withvalue, withid)
+                save_ply(outputdir, sub_gene_df, prefix, cl[i], 1, withvalue, withid)
                 print("save single gene: ", i, cl[i], " expression as ply done!")
                 
-                print(cl[i],sub_gene_df.shape)
+                print(cl[i], sub_gene_df.shape)
+
 
 def save_ply(dir, ctype_df, prefix, label, ptype, withvalue=True, withid=True):
     """
-    将坐标和RGB保存至点云ply文件中。
+    Save the coordinates and RGB to the point cloud ply file.
 
-    参数：
-
-    dir: 字符串，用于指定输出文件路径。
-    ctype_df: pandas 数据框， 保存坐标和RGB信息。
-    prefix: 字符串, 用于指定输出文件前缀。
-    label:字符串， 用于指定输出文件类型。
-    ptype:int， 用于指定输入文件类型。
-    withvalue: bool， 用于指定是否保存label信息。
+    parameter：
+        dir: A string that specifies the output file path.
+        ctype_df: pandas Data frame, saves coordinate and RGB information.
+        prefix: A string specifying the output file prefix.
+        label: A string that specifies the output file type.
+        ptype:int, Used to specify the input file type.
+        withvalue: bool, Used to specify whether to save label information.
 
     """
     pc_array = np.array(ctype_df[['x', 'y', 'z', 'R', 'G', 'B']])
@@ -411,8 +413,9 @@ def main():
                         default='color_key')
     parser.add_argument("--position", help="label in h5ad file for bin position ,default='spatial'", type=str,
                         default='spatial')
-    parser.add_argument("--colormap", help="colormap name for expression value ,support colormaps from package colorcet,default='rainbow4'", type=str,
-                        default='rainbow4')
+    parser.add_argument("--colormap",
+                        help="colormap name for expression value ,support colormaps from package colorcet,default='rainbow4'",
+                        type=str, default='rainbow4')
     parser.add_argument("--colorrange", help="percent range of expression value for colormap,default='0,100'", type=str,
                         default='0,100')
     parser.add_argument("--cutoff", help=" gene expression threshold, default=0", type=float,default=0)

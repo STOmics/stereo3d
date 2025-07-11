@@ -25,5 +25,5 @@ def parse_xml2mat(xml_path):
 
 
 if __name__ == '__main__':
-    mat, shape = parse_xml2mat(r"C:\Users\87393\Downloads\手动配准结果\rigid.xml")
+    mat, shape = parse_xml2mat(r"C:\Users\87393\Downloads\rigid.xml")
     print(mat)

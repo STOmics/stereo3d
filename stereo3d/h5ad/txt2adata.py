@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 4/7/22 5:39 PM
-# @Author  : zhangchao
 # @File    : txt2adata.py
-# @Email   : zhangchao5@genomics.cn
 import os.path
 
 from stereo3d.gem.transform import read_gem_from_gef
-import pandas as pd
 import os.path as osp
 import scipy.sparse as sp
 import pandas as pd
@@ -20,7 +17,7 @@ import glob
 def data_encapsulation(data, bin_size, save: str = None):
     # allowed_columns = ["geneID", "MIDCount", f"bin{bin_size}_label", "x", "y"]
     # for col in data.columns:
-    #     assert col in allowed_columns, "Error, Got an invalid column name, which only support {}".format(allowed_columns)
+    # assert col in allowed_columns, "Error, Got an invalid column name, which only support {}".format(allowed_columns)
     vals = data["MIDCount"].to_numpy()
     cell_list = data[f"bin{bin_size}_label"].astype("category")
     data["geneID"] = data["geneID"].fillna("Unkown")
@@ -61,17 +58,17 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
     for it in tqdm.tqdm(gem_list, desc='Cluster'.format(bin_size), ncols=100):
         i = osp.basename(it)
         if '.gem' in i:
-            save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # 根据需求修改save_name
-            df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
+            save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # Modify save_name as needed
+            df = pd.read_csv(it, comment='#', sep='\t')  # Get the file to read according to lasso
         elif '.txt' in i:
-            save_path = osp.join(save_dir, i.replace('.txt', '.h5ad'))  # 根据需求修改save_name
-            df = pd.read_csv(it, comment='#', sep='\t')  # 根据 lasso 得到文件去读
+            save_path = osp.join(save_dir, i.replace('.txt', '.h5ad'))  # Modify save_name as needed
+            df = pd.read_csv(it, comment='#', sep='\t')  # Get the file to read according to lasso
         elif '.gef' in i:
-            save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # 根据需求修改save_name
-            df = read_gem_from_gef(it)  # 根据 lasso 得到文件去读
+            save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # Modify save_name as needed
+            df = read_gem_from_gef(it)  # Get the file to read according to lasso
         else:
             pass
-        generate_binlabel(df, bin_size=bin_size)  # 根据需求修改bin_size
+        generate_binlabel(df, bin_size=bin_size)  # Modify bin_size as needed
         data_encapsulation(df, bin_size=bin_size, save=save_path)
 
 

@@ -10,13 +10,13 @@ The file has two tables. Among them, Table ```Meta``` records the key original d
 | Magnification  | Optical imaging magnification |
 | SizePerPixel  | The physical size of each pixel |
 | CameraTravelDistance  | The movement distance of the camera in the X direction |
-| Z-interval  | The stepping distance of the robotic arm on the Z axis |
+| Z-interval  | Robotic arm Z-axis stepping distance (critical for 3D mesh spacing) |
 
 ### SliceSequence
 |  Name   | Description                                            | Value  |
 |  ----  |--------------------------------------------------------| ----  |
 | Slice_ID  | The slicing order of each slice                        | - |
-| Z_index  | The stepping distance of the robotic arm on the Z axis | - |
+| Z_index  | The cumulative distance of each slice along the Z-axis (in μm).For example: if the first slice is 5 μm thick, fill in 5; if the second slice is 10 μm thick, fill in 15 (5+10). This determines the vertical position of slices in the 3D model. | - |
 | Idling  | Discard this slice                                     | - |
 | SSDNA_SN  | The slicing order of the chip                          |  -|
 | SSDNA_ChipNo  | The chip number of the spatiotemporal sequencing chip  | - |
