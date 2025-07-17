@@ -14,7 +14,7 @@ import numpy as np
 import anndata as ad
 import matplotlib.pyplot as plt
 
-from paste import pairwise_align as paste_align, \
+from stereo3d.register.paste import pairwise_align as paste_align, \
     generalized_procrustes_analysis, \
     paste_align_accuracy
 
