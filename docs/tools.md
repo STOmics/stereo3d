@@ -1,5 +1,19 @@
-## 1. SAW_HUB
+## Introduction to Intelligent Assistant Gadgets
 
+|  Tool Path   | Description                  |
+|  ----  |------------------------------|
+| stereo3d/tools/saw_hub.py  | Tool for integrating with Stereo-seq Analysis Workflow (SAW) | 
+| stereo3d/tools/anno_adata_support.py  | Script for H5AD-formatted single-cell data reconstruction      |
+| stereo3d/tools/stereo3d_viewer.ipynb  | 3D visualization viewer of spatial transcriptomics data              |
+| stereo3d/stereo3d_with_matrix.py  | After manual image registration, reconnect to the Stereo3D workflow with the -overwriter parameter to generate new results; for matrix-only data, use the paste command to produce registration results with cluster annotations and organ meshes. |
+| stereo3d/tools/multi_tissue.py  | Tool for merging and analyzing multi-tissue samples |
+| stereo3d/tools/spateo_3d.py  | Tool for interacting with Spateo 3D analysis framework |
+
+
+## 1. saw_hub
+If you have obtained the standard output results of SAW, you first need to use the gadget saw_hub.py in Stereo3D to convert the data into the standard input format of Stereo3D.
+
+### Usage
 ```shell
 python saw_hub.py \
 -input D:\data\stereo3d\input \
@@ -8,6 +22,7 @@ python saw_hub.py \
 -output D:\data\stereo3d\output \
 -saw_version 7
 ```
+##### Input Parameters
 
 |  Name   | Description                  | Importance | Dtype  |
 |  ----  |------------------------------|------------|--------|
@@ -18,27 +33,164 @@ python saw_hub.py \
 | stain  | The stain tech (ssDNA or HE) | Required   | string |
 
 
-## 2. Multi Tissue
+##### Output file
+
+|    File Name    |    Description     |
+|-----------------|--------------------|
+|  gem    |  The [saw](https://github.com/STOmics/SAW) input files(gene matrix)   |
+|  mask   | The [saw](https://github.com/STOmics/SAW) output files(`<SN>_<staintype>_tissue_cut.tif`), [details](https://stereotoolss-organization.gitbook.io/saw-user-manual-v8.2/analysis/outputs/count-outputs) |
+
+
+## 2. anno_adata_support
+
+User-annotated results are incorporated into the stereo3D pipeline, where coordinate transformation is performed using parameters from "02.merge" to generate both transformed *.h5ad files and 3D organ outputs.
+
+### Usage
+```bash
+python anno_adata_support.py 
+-m
+D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\ann_file
+-o
+D:\00.user\stereo3D\Drosophila_melanogaster_demo\output
+-aj
+D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\01.align_mask\align_info.json
+-cj
+D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\00.crop_mask\mask_cut_info.json
+```  
+
+##### Input Parameters 
+
+|  Name   | Description                  | Importance | Dtype  |
+|  ----  |------------------------------|------------|--------|
+| matrix_path  | File path: Cluster annotations are provided as H5AD files (AnnData objects) with spatial coordinates stored under the `obsm["spatial"]` key | Required   | string |
+| output_path  | The output path      | Required   | string |
+| align_json_path  | Alignment parameters file: In base pipline, it can be found in `02.register\01.align_mask\align_info.json` if it not provide, coordinates remain unmodified | Optional   | string |
+| cut_json_path  | Tissue mask parameters file: In base pipline, it can be found in `02.register\00.crop_mask\mask_cut_info.json` if it not provide, coordinates remain unmodified.  | Optional   | string    |
+| cluster_key  |   Cluster label: default = "leiden" , The cluster label name , save in anndata file `.obs` | Optional   | string |
+
+##### Output file
+
+|    File Name    |    Description     |
+|-----------------|--------------------|
+|  11.tans_adata    | Output H5AD file containing modified x/y coordinates and newly generated z-coordinates    |
+|  12.adata_organ         | The new 3D organ files |
+
+
+## 3. stereo3d_viewer
+
+stereo3d_viewer.ipynb is a Jupyter Notebook file for displaying 3D visualization results. It requires input as h5ad files with unified coordinates, and the files must contain unified cell type annotations or clustering labels.
+
+#### Usage
 ```shell
-python multi_tissue.py \
---mask_path D:\Desktop\stereo3d_1tom\SS200000122BL_B1\SS200000122BL_B1-2.tif \
---matrix_path D:\Desktop\stereo3d_1tom\SS200000122BL_B1\SS200000122BL_B1.gem.gz \
--output D:\Desktop\stereo3d_1tom\output\SS200000122BL_B1
+# Create a new conda environment named 'jupyter_env' with Python 3.9
+conda create -n jupyter_env python=3.9
+
+# Activate the conda environment
+conda activate jupyter_env
+
+# Install required packages: Jupyter Notebook, K3D visualization, NumPy, AnnData and seaborn
+pip install jupyter notebook k3d numpy anndata seaborn
+
+# Start Jupyter Notebook server
+jupyter notebook
 ```
 
+## 4. stereo3d_with_matrix
+### 4.1 After manual image registration is completed, it needs to be reconnected to the Stereo3D workflow to generate new results, and the -overwriter parameter is required.
+
+### Usage
+```shell
+python stereo3d_with_matrix.py \
+--matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
+--tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
+--record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
+--output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
+--overwriter 0
+```
+##### Input Parameters 
+| Name        | Description                 | Importance | Dtype  |
+|-------------|-----------------------------|------------|--------|
+| matrix      | The path of matrix file     | Required   | string |
+| mask        | The path of tissue cut file | Required   | string |
+| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)             | Required   | string |
+| output      | The output path             | Required   | string |
+| overwriter  | --overwriter 0 means not overwriting existing results, while --overwriter 1 means overwriting existing results. | Required   | int |
+
+### Output
+|    File Name    |    Description     |
+|-----------------|--------------------|
+|  02.register    | Registered tissue mask images after alignment    |
+|  03.gem         | Spatial expression matrix after registration |
+|  04.mesh        | 3D mesh model reconstructed from clustered point clouds |
+|  05.transform   | Annotated H5AD file containing spatial coordinates and cell metadata |
+|  06.color       | H5AD file with unified color mapping for  visualization |
+|  07.organ       | Segmented organ-specific mesh models |
+
+
+### 4.2 With only matrix data available, the paste command can be utilized to generate registration results with cluster annotations and organ meshes.
+### Usage
+```shell
+python stereo3d_with_matrix.py \
+-matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
+-tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
+-record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
+-output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
+-overwriter 0
+-align paste
+```
+##### Input Parameters 
+| Name        | Description                 | Importance | Dtype  |
+|-------------|-----------------------------|------------|--------|
+| matrix      | The path of matrix file     | Required   | string |
+| mask        | The path of tissue cut file | Required   | string |
+| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)             | Required   | string |
+| output      | The output path             | Required   | string |
+| overwriter  |--overwriter 0 means not overwriting existing results, while --overwriter 1 means overwriting existing results. | Required   | int |
+| align      | Using the paste method to achieve alignment | Required   | string |
+
+##### Output file
+|    File Name    |    Description     |
+|-----------------|--------------------|
+|  06.color       | H5AD file with unified color mapping for  visualization |
+|  07.organ       | Segmented organ-specific mesh models |
+
+## 5. multi_tissue
+
+A tool for splitting multi-tissue samples on spatial transcriptomics chips, which can identify multiple tissue regions on the same chip and segment them into independent units.
+
+### Usage
+```shell
+python multi_tissue.py \
+--mask_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.tif \
+--matrix_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.gem.gz \
+--output D:\Desktop\stereo3d_1tom\output\FP200000449TL_C3
+```
+
+##### Input Parameters 
 | Name        | Description                 | Importance | Dtype  |
 |-------------|-----------------------------|------------|--------|
 | matrix      | The path of matrix file     | Required   | string |
 | mask        | The path of tissue cut file | Required   | string |
 | output      | The output path             | Required   | string |
 
+##### Output file
+|    File Name    |    Description     |
+|-----------------|--------------------|
+|  gem         | matrix files of all tissues |
+|  mask     | tissuecut files of all tissues |
+|  sn.gef    | Convert gem to gef (only applicable in gem scenarios) |
+|  sn.tif         | all-tissue ID representation files |
+|  sn_YYYYMMDD.lasso.geojson   |  Label file compatible with stereoMap |
 
-## 3. spateo-3d
+
+## 6. spateo-3d
 Here, we use the spateo framework to build a simple process to input multiple adjacent slices of h5ad files and output the aligned h5ad files and 3D model files. The output format is consistent with the input of spateo-viewer, so the results can be rendered and viewed on it.
+
+## Test dataset
 * Test data1, [Drosophila embryos](https://db.cngb.org/stomics/flysta3d/download/)
 * Test data2, [Mouse Embryo](https://db.cngb.org/stomics/mosta/download/)
 
-### setup
+### Installation
 * [spateo](https://github.com/aristoteleo/spateo-release)
     ```shell
     # python=3.9
@@ -55,7 +207,7 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     ```
    _Note:_ vtk==9.2.2 can solve ```TypeError: Could not find a suitable VTK type for <U54```
 
-### usage
+### Usage
 * spateo
     ```shell
     python spateo_3d.py \
@@ -67,6 +219,7 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     -cluster_pts 1000
     ```
   
+##### Input Parameters 
   |  Name   | Description                                                                                                                                                                                                                                                                        | Importance | Dtype  |
   |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|--------|
   | input  | File or directory path. <br>File path: all slices are in one file; <br>Directory path: all slices are in one directory (the file name must contain numbers to reflect their relationship)                                                                                          | Required   | string |
@@ -83,49 +236,3 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     python stv_explorer.py --port 1234
     ```
   * show, [more](https://github.com/aristoteleo/spateo-viewer/blob/main/usage/spateo-viewer.pdf)
-
-
-## 4. anno_adata_support
-
-User-annotated results are incorporated into the stereo3D pipeline, where coordinate transformation is performed using parameters from "02.merge" to generate both transformed *.h5ad files and 3D organ outputs.
-
-### Usage:
-```bash
-python anno_adata_support.py 
--m
-D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\ann_file
--o
-D:\00.user\stereo3D\Drosophila_melanogaster_demo\output
--aj
-D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\01.align_mask\align_info.json
--cj
-D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\00.crop_mask\mask_cut_info.json
-```  
-
-##### Input Parameters:  
-
-- **`--matrix_path`** (str, required)  
-  File path:
-  Cluster annotations are provided as H5AD files (AnnData objects)
-  with spatial coordinates stored under the `obsm["spatial"]` key
-- **`--output_path`** (str, required)  
-  Output Path
-- **`--align_json_path`** (str)  
-  Alignment parameters file:
-  In base pipline, it can be found in `02.register\01.align_mask\align_info.json`
-  if it not provide, coordinates remain unmodified.
-- **`--cut_json_path`** (str)  
-  Tissue mask parameters file:
-  In base pipline, it can be found in `02.register\00.crop_mask\mask_cut_info.json`
-  if it not provide, coordinates remain unmodified.
-- **`--cluster_key`** (str)   
-  Cluster label: default = "leiden"  
-  The cluster label name , save in anndata file `.obs`
-
-##### Output file:
-
-- **`11.tans_adata`** :   
-  Output H5AD file containing modified x/y coordinates and newly generated z-coordinates.
-- **`12.adata_organ`** :  
-  The new 3D organ files. 
-    

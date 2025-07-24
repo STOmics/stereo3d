@@ -54,7 +54,7 @@ Run ```python stereo3d_with_matrix.py --help``` for detail.
 ### Drosophila Embryo 3D Reconstruction Example
 ```shell
 python stereo3d_with_matrix.py \
---matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
+--matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.gem \
 --tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
 --record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
 --output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
@@ -81,7 +81,7 @@ Download the complete demo dataset (~90MB) from:
 #### 3D Visualization of Clustering Results
 The following GIF demonstrates the 3D spatial distribution of single-cell clustering results:
 
-<div align="center">
+<div align="left">
   <img src="docs/drosophila_melanogaster.gif" alt="3D visualization of cell clusters" width="50%" height="auto" >
 
 </div>

@@ -12,3 +12,4 @@ leidenalg==0.10.1
 harmonypy==0.0.9
 gefpy==1.2.3
 XML2Dict==0.2.2
+POT==0.9.5
