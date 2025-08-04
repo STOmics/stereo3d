@@ -10,7 +10,7 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-curr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')  # path of the code
+curr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')  # path of the code
 sys.path.append(curr_path)
 
 from stereo3d.gem.transform import trans_matrix_by_json

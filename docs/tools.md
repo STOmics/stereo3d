@@ -131,21 +131,17 @@ python stereo3d_with_matrix.py \
 ### Usage
 ```shell
 python stereo3d_with_matrix.py \
--matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
--tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
--record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
+--matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
+--record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
 -output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
--overwriter 0
 -align paste
 ```
 ##### Input Parameters 
 | Name        | Description                 | Importance | Dtype  |
 |-------------|-----------------------------|------------|--------|
 | matrix      | The path of matrix file     | Required   | string |
-| mask        | The path of tissue cut file | Required   | string |
-| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)             | Required   | string |
+| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)      | Required   | string |
 | output      | The output path             | Required   | string |
-| overwriter  |--overwriter 0 means not overwriting existing results, while --overwriter 1 means overwriting existing results. | Required   | int |
 | align      | Using the paste method to achieve alignment | Required   | string |
 
 ##### Output file

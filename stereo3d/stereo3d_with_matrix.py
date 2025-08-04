@@ -274,7 +274,7 @@ def main(args, para):
                            tissue_mask=args.tissue_mask,
                            record_sheet=args.record_sheet,
                            output_path=args.output_path,
-                           overwrite = args.overwrite,
+                           overwrite = args.overwriter,
                            align_method = args.align)
     glog.info('Welcome to cooperate again')
 
@@ -288,16 +288,16 @@ if __name__ == '__main__':
     parser.add_argument("--version", action="version", version=PROG_VERSION)
     parser.add_argument("-matrix", "--matrix_path", action="store", dest="matrix_path", type=str, required=True,
                         help="Input matrix path.")
-    parser.add_argument("-tissue", "--tissue_mask", action="store", dest="tissue_mask", type=str, required=True,
-                        help="Input tissue mask path.")
     parser.add_argument("-record", "--record_sheet", action="store", dest="record_sheet", type=str, required=True,
                         help="Input record sheet path. ")
-    parser.add_argument("-overwrite", "--overwrite", action="store", dest="overwrite", type=int, required=False,
+    parser.add_argument("-output", "--output_path", action="store", dest="output_path", type=str, required=True,
+                        help="Output path. ")
+    parser.add_argument("-tissue", "--tissue_mask", action="store", dest="tissue_mask", type=str, required=False,
+                        help="Input tissue mask path.")
+    parser.add_argument("-overwriter", "--overwriter", action="store", dest="overwriter", type=int, required=False,
                         default = 0, help="Overwrite old files, 0 is False, 1 is True. ")
     parser.add_argument("-align", "--align", action = "store", dest = "align", type = str, required = False,
                         default = '', help = " 'paste' | '' ")
-    parser.add_argument("-output", "--output_path", action="store", dest="output_path", type=str, required=True,
-                        help="Output path. ")
     parser.set_defaults(func=main)
 
     (para, args) = parser.parse_known_args()
