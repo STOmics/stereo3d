@@ -61,7 +61,6 @@ def get_mask_3d_points(mask_path_list,
     scale = int(z_interval / pixel4mm)
 
     for i, img_path in enumerate(tqdm(mask_path_list, desc="Mask", ncols=100)):
-        print(img_path)
         image = cv.imread(img_path, -1)
         image = cv.resize(image, [int(image.shape[1] / scale), int(image.shape[0] / scale)])
 

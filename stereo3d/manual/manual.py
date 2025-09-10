@@ -42,9 +42,7 @@ def parse_xml2mat(xml_path, name):
         shape_p = 1
     
     width = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['width'])
-    print(width)
     height = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['height'])
-    print(height)
     width, height = int(width), int(height)
     transform_dict = {'base_transform': None, 'transform_sequence': []} # dict for recording data for transform
     patch = xml_dict['trakem2']['t2_layer_set']['t2_layer'][file_sequence]['@t2_patch']
