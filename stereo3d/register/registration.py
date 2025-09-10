@@ -495,7 +495,9 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
             manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
             if len(manual_file) > 0:
+                print(manual_file[0])
                 manual_mat, shape = parse_xml2mat(manual_file[0])
+                print(manual_mat)
             else: continue
 
             name_list = []
@@ -504,8 +506,15 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
                     name_list.append(k)
                     register_mat = v['mat']
                     break
+            if len(manual_mat) == 1:
+                combine_manual_mat = manual_mat[0]
+            else:
+                combine_manual_mat = np.eye(3)
+                for mat in reversed(manual_mat[1:]):
+                    combine_manual_mat = mat @ combine_manual_mat
 
-            _register_mat = manual_mat @ np.array(register_mat)
+            _register_mat = combine_manual_mat @ np.array(register_mat)
+            #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
             break
