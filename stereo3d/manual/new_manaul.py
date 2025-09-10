@@ -173,7 +173,7 @@ def read_xml_transform_info(xml_file):
     # 查找包含变换序列的t2_patch
     patches = root.findall('.//t2_patch')
     if len(patches) >= 2:
-        target_patch = patches[1]
+        target_patch = patches[0]
         
         # 解析基础变换
         base_transform_str = target_patch.get('transform')
@@ -278,9 +278,17 @@ def apply_transforms_to_image(image, info_dict):
             dst_pts = np.float32(mls_params['dst_points'])
 
             # 计算变换并应用
-            M = cv2.getAffineTransform(src_pts, dst_pts)
+            if len(src_pts) == 3:
+                M = cv2.getAffineTransform(src_pts, dst_pts)
+                current_image = cv2.warpAffine(current_image, M, (current_image.shape[1], current_image.shape[0]))
+            elif len(src_pts) == 4:
+                M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+                current_image = cv2.warpPerspective(image, M, (current_image.shape[1], current_image.shape[0]))
+            elif len(src_pts) > 4:
+                M, _ = cv2.estimateAffinePartial2D(src_pts, dst_pts)
+                current_image = cv2.warpAffine(current_image, M, (current_image.shape[1], current_image.shape[0]))
             print(M)
-            current_image = cv2.warpAffine(current_image, M, (current_image.shape[1], current_image.shape[0]))
+            
             '''pi =np.array(pi).astype(int)
             print(pi)
             qi = mls_params['dst_points']
@@ -310,12 +318,12 @@ def parse_transform_matrix(transform_str):
 # 使用示例
 if __name__ == "__main__":
     # 读取XML信息
-    xml_path = r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\02.manual\A02183A2.xml"
+    xml_path = r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\01.align_mask\A02183A1.xml"
     info_dict = read_xml_transform_info(xml_path)
     print("读取到变换信息:", info_dict)
     
     # 读取图像
-    input_image_path = r"c:\Users\wangaoli\Desktop\remov\A02183A2.tif"
+    input_image_path = r"c:\Users\wangaoli\Desktop\remov\A02183A1.tif"
     image = cv2.imread(input_image_path, cv2.IMREAD_GRAYSCALE)
     '''src_pts = np.float32([[715,617], [684,1013], [807,895]])
     dst_pts = np.float32([[740,609], [481,942], [719,956]])
@@ -331,6 +339,6 @@ if __name__ == "__main__":
     transformed_image = apply_transforms_to_image(image, info_dict)
     
     # 保存结果
-    output_path = r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\01.align_mask\A02183A2_algo_ttest.tif"
+    output_path = r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\01.align_mask\A02183A1_algo_ttest.tif"
     tif.imwrite(output_path, transformed_image)
     print("变换完成")

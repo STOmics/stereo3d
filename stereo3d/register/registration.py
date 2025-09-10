@@ -486,6 +486,7 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
     align_json = os.path.join(output_path, "align_info.json")
     info_dict = json.load(open(align_json, 'r'))
+    info_dict_or = info_dict.copy()
 
     for ind, img_path in enumerate(images_list):
         name = os.path.basename(img_path).split(".")[0]
@@ -495,13 +496,12 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
             manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
             if len(manual_file) > 0:
-                print(manual_file[0])
-                manual_mat, shape = parse_xml2mat(manual_file[0])
+                manual_mat, shape = parse_xml2mat(manual_file[0],_name)
                 print(manual_mat)
             else: continue
 
             name_list = []
-            for k, v in info_dict.items():
+            for k, v in info_dict_or.items():
                 if _name in k:
                     name_list.append(k)
                     register_mat = v['mat']
@@ -512,22 +512,30 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
                 combine_manual_mat = np.eye(3)
                 for mat in reversed(manual_mat[1:]):
                     combine_manual_mat = mat @ combine_manual_mat
-
-            _register_mat = combine_manual_mat @ np.array(register_mat)
+            if register_mat is None:
+                _register_mat = combine_manual_mat
+                info_dict[name_list[0]]['shape'] = shape
+            else:
+                _register_mat = combine_manual_mat @ np.array(register_mat)
             #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
-            break
+            img_tmp = tif.imread(img_path)
+            tif.imwrite(os.path.join(os.path.dirname(img_path), _name + ".tif"), img_tmp)
+            os.remove(img_path)
+            images_list[ind] = os.path.join(os.path.dirname(img_path), _name + ".tif")
+            #break
+            _image_list = crop_tissue_list[ind + 1:]
+            print(_image_list)
+            _image_list.insert(0, images_list[ind])
+            print(_image_list)
+            _info_dict = _align_slices_similar(_image_list, output_path)
+            for k, v in _info_dict.items():
+                if _name in k:
+                    continue
+                info_dict[k]['mat'] = v['mat']
 
-    _image_list = crop_tissue_list[ind + 1:]
-    _image_list.insert(0, images_list[ind])
-    _info_dict = _align_slices_similar(_image_list, output_path)
-    for k, v in _info_dict.items():
-        if _name in k:
-            continue
-        info_dict[k]['mat'] = v['mat']
-
-    os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+    #os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
     json_write(info_dict, output_path)
 
 

@@ -30,22 +30,27 @@ def parse_mls_data(data_str):
     
     return params
 
-def parse_xml2mat(xml_path):
+def parse_xml2mat(xml_path, name):
     xml = XML2Dict()
     with open(xml_path, 'r', encoding='utf-8') as f:
         s = f.read()   
         xml_dict = xml.parse(s)
+    file_sequence = 1
+    shape_p = 0
+    if name in xml_dict['trakem2']['t2_layer_set']['t2_layer'][0]['@t2_patch']['title']:
+        file_sequence = 0
+        shape_p = 1
     
-    width = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][1]['@t2_patch']['width'])
+    width = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['width'])
     print(width)
-    height = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][1]['@t2_patch']['height'])
+    height = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['height'])
     print(height)
     width, height = int(width), int(height)
     transform_dict = {'base_transform': None, 'transform_sequence': []} # dict for recording data for transform
-    patch = xml_dict['trakem2']['t2_layer_set']['t2_layer'][1]['@t2_patch']
+    patch = xml_dict['trakem2']['t2_layer_set']['t2_layer'][file_sequence]['@t2_patch']
     if 'transform' in patch:
         transform_dict['base_transform'] = patch['transform'][7:-1] # basic transform matrix
-    patch = xml_dict['trakem2']['t2_layer_set']['t2_layer'][1]['t2_patch']
+    patch = xml_dict['trakem2']['t2_layer_set']['t2_layer'][file_sequence]['t2_patch']
     
     if patch:
         def extract_from_element(element):
@@ -108,34 +113,7 @@ def parse_xml2mat(xml_path):
 
     return mat_sequence, [height, width]      
 
-    
-    
-#-----------
-    mat_str = xml_dict['trakem2']['t2_layer_set']['t2_layer'][1]['@t2_patch']['transform'][7:-1]
-    width = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][0]['@t2_patch']['width'])
-    print(width)
-    height = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][0]['@t2_patch']['height'])
-    print(height)
-    width, height = int(width), int(height)
-    mat_value = np.array(mat_str.split(','), dtype=np.float32)
-    mat = np.eye(3)
-    mat[0, :2] = mat_value[:2]
-    mat[1, :2] = mat_value[2:4]
-    mat[:2, 2] = mat_value[4:]
-
-    mat[0, 1] = -mat[0, 1]
-    mat[1, 0] = -mat[1, 0]
-    
-    return mat, [height, width]
-
-def image_transform(input_img, mat, width, height):
-    print(sum(sum(input_img)))
-    affine_matrix = mat[:2, :]
-    transformed = cv.warpAffine(input_img, affine_matrix, (width, height))
-    print(sum(sum(transformed)))
-    return transformed
-
 
 if __name__ == '__main__':
-    mat, shape = parse_xml2mat(r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\02.manual\A02183A2.xml")
+    mat, shape = parse_xml2mat(r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\02.manual\A02183A1.xml","A02183A1")
     print(mat)
