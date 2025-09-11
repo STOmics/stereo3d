@@ -497,7 +497,6 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
             manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
             if len(manual_file) > 0:
                 manual_mat, shape = parse_xml2mat(manual_file[0],_name)
-                print(manual_mat)
             else: continue
 
             name_list = []
@@ -526,9 +525,7 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
             images_list[ind] = os.path.join(os.path.dirname(img_path), _name + ".tif")
             #break
             _image_list = crop_tissue_list[ind + 1:]
-            print(_image_list)
             _image_list.insert(0, images_list[ind])
-            print(_image_list)
             _info_dict = _align_slices_similar(_image_list, output_path)
             for k, v in _info_dict.items():
                 if _name in k:
