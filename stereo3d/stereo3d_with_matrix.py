@@ -136,12 +136,10 @@ class Stereo3DwithTissueMatrix(object):
         if not os.path.exists(align_output_path): os.makedirs(align_output_path)
 
         if self._overwrite_flag:
-            print(self._overwrite_flag)
             align_slices(crop_tissue_list, align_output_path)
             glog.info('Align mask is overwrite the files.')
         else:
             files_num = len(os.listdir(align_output_path)) - 1
-            print(files_num)
             if files_num != len(crop_tissue_list):
                 align_slices(crop_tissue_list, align_output_path)
                 glog.info('Align mask updated.')
@@ -275,7 +273,6 @@ class Stereo3DwithTissueMatrix(object):
         self.output_path = output_path
 
         self._overwrite_flag = True if overwrite else False
-        print(self._overwrite_flag)
 
         if align_method == 'paste':
             glog.info("----------02.Align by paste----------")
