@@ -555,7 +555,7 @@ def align_slices(slices_path, output_path, dst_path=None, scale2dst=None, regist
             dst_list = dst_path
         info_dict = _align_slices_no_similar(images_list, output_path, dst_list, scale2dst)
     else:
-        info_dict = _align_slices_similar(images_list, output_path, registration=registration) #edit
+        info_dict = _align_slices_similar(images_list, output_path, registration=registration)
 
     json_write(info_dict, output_path)
 
