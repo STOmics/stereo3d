@@ -26,6 +26,7 @@ class Stereo3DwithTissueMatrix(object):
         self._tissue: list = None
 
         self._overwrite_flag: bool = True
+        self._registration_flag: bool = True
         self._slice_seq = SliceSequence()
 
         # sn_name = ss.get_chip_seq()
@@ -136,12 +137,12 @@ class Stereo3DwithTissueMatrix(object):
         if not os.path.exists(align_output_path): os.makedirs(align_output_path)
 
         if self._overwrite_flag:
-            align_slices(crop_tissue_list, align_output_path)
+            align_slices(crop_tissue_list, align_output_path, registration = self._registration_flag)
             glog.info('Align mask is overwrite the files.')
         else:
             files_num = len(os.listdir(align_output_path)) - 1
             if files_num != len(crop_tissue_list):
-                align_slices(crop_tissue_list, align_output_path)
+                align_slices(crop_tissue_list, align_output_path, registration = self._registration_flag)
                 glog.info('Align mask updated.')
             else:
                 if check_manual(os.listdir(align_output_path)):
@@ -252,6 +253,7 @@ class Stereo3DwithTissueMatrix(object):
             record_sheet: str,
             output_path: str,
             overwrite: int = 1,
+            registration: int = 1,
             align_method: str = '',
     ):
         """
@@ -273,6 +275,7 @@ class Stereo3DwithTissueMatrix(object):
         self.output_path = output_path
 
         self._overwrite_flag = True if overwrite else False
+        self._registration_flag = True if registration == 1 else False
 
         if align_method == 'paste':
             glog.info("----------02.Align by paste----------")
@@ -288,7 +291,7 @@ class Stereo3DwithTissueMatrix(object):
             glog.info('Completed crop tissue mask and save the result.')
 
             glog.info("----------03.Register Mask----------")
-            align_output_path = self._register(crop_mask_path)
+            align_output_path = self._register(crop_mask_path)#get info_dict for every image, be reused in gene transform
             glog.info('Completed adjacent slice alignment.')
 
             glog.info("----------04.Transform Gene----------")
@@ -312,6 +315,7 @@ def main(args, para):
                            record_sheet=args.record_sheet,
                            output_path=args.output_path,
                            overwrite = args.overwriter,
+                           registration= args.registration,
                            align_method = args.align)
     glog.info('Welcome to cooperate again')
 
@@ -333,6 +337,8 @@ if __name__ == '__main__':
                         help="Input tissue mask path.")
     parser.add_argument("-overwriter", "--overwriter", action="store", dest="overwriter", type=int, required=False,
                         default = 0, help="Overwrite old files, 0 is False, 1 is True. ")
+    parser.add_argument("-registration", "--registration", action="store", dest="registration", type=int, required=False,
+                        default = 1, help="Algorithm registration, 0 is False, 1 is True. ")
     parser.add_argument("-align", "--align", action = "store", dest = "align", type = str, required = False,
                         default = '', help = " 'paste' | '' ")
     parser.set_defaults(func=main)

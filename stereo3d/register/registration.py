@@ -17,7 +17,8 @@ class RigidTrans:
                  src_image,
                  dst_image,
                  scale_by_dst=1,
-                 translate_only=False):
+                 translate_only=False,
+                 registration=True):
         """
         Args:
             src_image: str | array Image to be registered
@@ -39,6 +40,7 @@ class RigidTrans:
 
         self.scale2dst = scale_by_dst
         self.translate_only = translate_only
+        self.registration = registration
 
     def find_rigid_trans(self, is_flip=False, down_sampling=2):
         """
@@ -115,8 +117,11 @@ class RigidTrans:
 
             if best_flip:
                 trans_mat[0, :] = [-1, 0, _src_image.shape[1] - 1]
-
-            if fine_mat is not None:
+            if self.registration == False: 
+                print("Warning: Registration is turned off.")  
+                trans_mat = np.array([[1., 0., 0], [0., 1., 0], [0, 0, 1.]])
+                best_score = 1
+            elif self.registration == True and fine_mat is not None:
                 trans_mat = down_scale_mat_inv @ fine_mat @ best_coarse_mat @ \
                             trans_mat @ down_scale_mat @ scale_mat
 
@@ -326,7 +331,7 @@ def json_write(info_dict, output_path):
         json.dump(info_dict, f, indent=2)
 
 
-def _align_slices_and_record(src_image, dst_image, scale, info_dict):
+def _align_slices_and_record(src_image, dst_image, scale, info_dict, registration=True):
     """
     Args:
         src_image:
@@ -336,7 +341,7 @@ def _align_slices_and_record(src_image, dst_image, scale, info_dict):
     """
     name = os.path.basename(src_image)
     if dst_image:
-        rt = RigidTrans(src_image, dst_image, scale_by_dst=scale)
+        rt = RigidTrans(src_image, dst_image, scale_by_dst=scale, registration = registration)
         new_image, trans_mat, best_score = rt.find_rigid_trans(down_sampling=4)
     else:
         new_image = None
@@ -350,7 +355,7 @@ def _align_slices_and_record(src_image, dst_image, scale, info_dict):
     return new_image, info_dict
 
 
-def _align_slices_similar(images_list, output_path):
+def _align_slices_similar(images_list, output_path, registration=True):
     """
     Args:
         images_list:
@@ -368,12 +373,12 @@ def _align_slices_similar(images_list, output_path):
             except shutil.SameFileError: pass
             up_image = os.path.join(output_path, name)
             _, info_dict = _align_slices_and_record(
-                src_image=image, dst_image=None, scale=1, info_dict=info_dict
+                src_image=image, dst_image=None, scale=1, info_dict=info_dict, registration=registration
             )
             continue
 
-        new_image, info_dict = _align_slices_and_record(
-            src_image=image, dst_image=up_image, scale=1, info_dict=info_dict
+        new_image, info_dict = _align_slices_and_record( #edit
+            src_image=image, dst_image=up_image, scale=1, info_dict=info_dict, registration=registration
         )
 
         tif.imwrite(os.path.join(output_path, name), new_image)
@@ -382,7 +387,7 @@ def _align_slices_similar(images_list, output_path):
     return info_dict
 
 
-def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
+def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst, registration= True):
     """
     Args:
         images_list:
@@ -399,7 +404,7 @@ def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
             name = os.path.basename(image)
 
             new_image, info_dict = _align_slices_and_record(
-                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict
+                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict, registration=registration
             )
 
             tif.imwrite(os.path.join(output_path, name), new_image)
@@ -412,7 +417,7 @@ def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
                 if name == dst_name:
                     break
             new_image, info_dict = _align_slices_and_record(
-                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict
+                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict, registration=registration
             )
             tif.imwrite(os.path.join(output_path, name), new_image)
     else:
@@ -428,7 +433,7 @@ def _align_slices_no_similar(images_list, output_path, dst_list, scale2dst):
                 continue
 
             new_image, info_dict = _align_slices_and_record(
-                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict
+                src_image=image, dst_image=dst, scale=scale2dst, info_dict=info_dict, registration=registration
             )
             tif.imwrite(os.path.join(output_path, name), new_image)
 
@@ -486,6 +491,7 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
     align_json = os.path.join(output_path, "align_info.json")
     info_dict = json.load(open(align_json, 'r'))
+    info_dict_or = info_dict.copy()
 
     for ind, img_path in enumerate(images_list):
         name = os.path.basename(img_path).split(".")[0]
@@ -495,34 +501,47 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
             manual_file = glob(os.path.join(manual_path, f"*{_name}*" + ".xml"))
             if len(manual_file) > 0:
-                manual_mat, shape = parse_xml2mat(manual_file[0])
+                manual_mat, shape = parse_xml2mat(manual_file[0],_name)
             else: continue
 
             name_list = []
-            for k, v in info_dict.items():
+            for k, v in info_dict_or.items():
                 if _name in k:
                     name_list.append(k)
                     register_mat = v['mat']
                     break
-
-            _register_mat = manual_mat @ np.array(register_mat)
+            if len(manual_mat) == 1:
+                combine_manual_mat = manual_mat[0]
+            else:
+                combine_manual_mat = np.eye(3)
+                for mat in reversed(manual_mat[1:]):
+                    combine_manual_mat = mat @ combine_manual_mat
+            if register_mat is None:
+                _register_mat = combine_manual_mat
+                info_dict[name_list[0]]['shape'] = shape
+            else:
+                _register_mat = combine_manual_mat @ np.array(register_mat)
+            #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
-            break
+            img_tmp = tif.imread(img_path)
+            tif.imwrite(os.path.join(os.path.dirname(img_path), _name + ".tif"), img_tmp)
+            os.remove(img_path)
+            images_list[ind] = os.path.join(os.path.dirname(img_path), _name + ".tif")
+            #break
+            _image_list = crop_tissue_list[ind + 1:]
+            _image_list.insert(0, images_list[ind])
+            _info_dict = _align_slices_similar(_image_list, output_path)
+            for k, v in _info_dict.items():
+                if _name in k:
+                    continue
+                info_dict[k]['mat'] = v['mat']
 
-    _image_list = crop_tissue_list[ind + 1:]
-    _image_list.insert(0, images_list[ind])
-    _info_dict = _align_slices_similar(_image_list, output_path)
-    for k, v in _info_dict.items():
-        if _name in k:
-            continue
-        info_dict[k]['mat'] = v['mat']
-
-    os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
+    #os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
     json_write(info_dict, output_path)
 
 
-def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
+def align_slices(slices_path, output_path, dst_path=None, scale2dst=None, registration=True):
     """
     Register a series of slice images or mask images
     Args:
@@ -550,7 +569,7 @@ def align_slices(slices_path, output_path, dst_path=None, scale2dst=None):
             dst_list = dst_path
         info_dict = _align_slices_no_similar(images_list, output_path, dst_list, scale2dst)
     else:
-        info_dict = _align_slices_similar(images_list, output_path)
+        info_dict = _align_slices_similar(images_list, output_path, registration=registration)
 
     json_write(info_dict, output_path)
 
