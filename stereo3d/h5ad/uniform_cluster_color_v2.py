@@ -18,7 +18,7 @@ except ImportError:
     from typing_extensions import Literal
 
 
-def uniform_cluster_color(h5ad_list: list, out_path:str):
+def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
     # h5ad_list = glob.glob(os.path.join(h5ad_path, "*.h5ad"))
     import harmonypy
 
@@ -47,7 +47,7 @@ def uniform_cluster_color(h5ad_list: list, out_path:str):
         sub_data.obsm['spatial_mm'][:, 0] = sub_data.obsm['spatial'][:, 0] * 500 / 1000000
         sub_data.obsm['spatial_mm'][:, 1] = sub_data.obsm['spatial'][:, 1] * 500 / 1000000
 
-        z_value = [i * 0.008] * sub_data.obs.shape[0]
+        z_value = [z_index_list[i]] * sub_data.obs.shape[0]
         z_value = np.array(z_value).reshape(-1, 1)
         # print(sub_data.obsm['spatial_mm'], z_value)
 
@@ -64,7 +64,7 @@ def uniform_cluster_color(h5ad_list: list, out_path:str):
 
 def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, celltype: str,
                                h5ad_list: Optional[list] = None, adata_list: Optional[list] = None,
-                               sc_xyz: Optional[list] = None):
+                               sc_xyz: Optional[list] = None, z_index_list: list = []):
     """
     Get x,y,z,anno columns as mesh input.
 
@@ -96,7 +96,7 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
         adata_list = adata_list
     else:
         raise ValueError(f"h5ad_path and adata_list should have at least one that is not None.")
-    for adata in adata_list:
+    for i, adata in enumerate(adata_list):
         # if adata.uns['data_unit']['binsize'] == 'cellbin':
         #     binsize = 10
         # else:
@@ -105,7 +105,7 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
         # z_size = adata.uns['data_unit']['z_size']
         # match = re.search(r'(\d+)um', z_size)
         # z_size = int(match.group(1))
-        z_size = 8
+        z_size = z_index_list[i] * 1000
         if sc_xyz is None:
             sc_xyz = [None] * 3
             sc_xyz[0] = 1000 / (binsize * 0.5)
@@ -113,7 +113,8 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
             sc_xyz[2] = 1000 / z_size
         x = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 0] * sc_xyz[0]).tolist()
         y = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 1] * sc_xyz[1]).tolist()
-        z = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 2] * sc_xyz[2]).tolist()
+        #z = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 2] * sc_xyz[2]).tolist()
+        z = [z_size] * adata[adata.obs[anno] == celltype].obsm[spatial_regis].shape[0]
         ty = adata[adata.obs[anno] == celltype].obs[anno].tolist()
         del adata
         gc.collect()
