@@ -105,7 +105,7 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
         # z_size = adata.uns['data_unit']['z_size']
         # match = re.search(r'(\d+)um', z_size)
         # z_size = int(match.group(1))
-        z_size = z_index_list[i] * 1000
+        z_size = z_index_list[i] * 100
         if sc_xyz is None:
             sc_xyz = [None] * 3
             sc_xyz[0] = 1000 / (binsize * 0.5)
