@@ -111,11 +111,12 @@ class Stereo3DwithTissueMatrix(object):
             output_path=color_h5ad,
         )
         z_interval = self._slice_seq.z_interval
+        z_index_list = self._slice_seq.z_index_list
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
-                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype=c,
-                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None)
+                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
+                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
                 organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
             except Exception as e:

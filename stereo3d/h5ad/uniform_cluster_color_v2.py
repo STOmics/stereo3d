@@ -110,7 +110,7 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
             sc_xyz = [None] * 3
             sc_xyz[0] = 1000 / (binsize * 0.5)
             sc_xyz[1] = 1000 / (binsize * 0.5)
-            sc_xyz[2] = 1000 / z_size
+            #sc_xyz[2] = 1000 / z_size
         x = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 0] * sc_xyz[0]).tolist()
         y = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 1] * sc_xyz[1]).tolist()
         #z = (adata[adata.obs[anno] == celltype].obsm[spatial_regis][:, 2] * sc_xyz[2]).tolist()

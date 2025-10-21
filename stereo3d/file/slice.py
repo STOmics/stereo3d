@@ -78,6 +78,7 @@ class SliceSequence(object):
         self.size_per_pixel = ''
         self.camera_travel_distance = ''
         self.z_interval = ''
+        self.z_index_list = list()
         self.sequence = dict()
 
     def from_xlsx(self, file_path: str):
@@ -95,6 +96,8 @@ class SliceSequence(object):
 
         # per slice
         slices = pd.read_excel(file_path, sheet_name='SliceSequence', header=0)
+        z_index_list = slices['Z_index'].tolist()
+        self.z_index_list = z_index_list
         for s in slices.iterrows():
             slice = Slice()
             slice.from_df_row(s)
