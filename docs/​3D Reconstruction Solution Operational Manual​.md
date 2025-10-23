@@ -89,15 +89,15 @@ If you have the standard output results from SAW, you need to first use the smal
 
 Table 1 Stereo3D Standard Input Parameter Introduction
 
-| **Input**    | **Description**                                              | **Required** | **Data Type** | **Remarks**         |
-| :----------- | :----------------------------------------------------------- | :----------- | :------------ | :------------------ |
-| matrix_path  | Standard format gene expression matrix, supports raw.gef/gef/gem.gz | Required     | string        | /                   |
-| tissue_mask  | Tissue mask image, tif format                                | Required     | string        | /                   |
-| record_sheet | Obtained from the experimental side, records slice positions, correspondence between preceding and subsequent slices | Required     | string        | /                   |
-| output       | Result save path                                             | Required     | string        | /                   |
-| registration | The process performs registration by default. If the input data is already registered and no additional algorithmic registration is needed, use parameter `--registration 0` | Optional     | int           | /                   |
-| overwriter   | If the automated registration result of Stereo3D does not meet requirements, perform manual registration operations on the automatically registered files, then feed back into the Stereo3D process to output new results, use parameter `--overwriter 0` | Optional     | int           | Example see 2.4.1.1 |
-| align        | If only the matrix is input, matrix reconstruction results can be generated, outputting only the registered H5AD and organ mesh, use parameter `--align paste` | Optional     | string        | Example see 3.2.3.2 |
+| **Input**    | **Description**                                              | **Required** | **Data Type** | **Remarks**                                                  |
+| :----------- | :----------------------------------------------------------- | :----------- | :------------ | :----------------------------------------------------------- |
+| matrix_path  | Standard format gene expression matrix, supports raw.gef/gef/gem.gz | Required     | string        | /                                                            |
+| tissue_mask  | Tissue mask image, tif format                                | Required     | string        | /                                                            |
+| record_sheet | Obtained from the experimental side, records slice positions, correspondence between preceding and subsequent slices | Required     | string        | /                                                            |
+| output       | Result save path                                             | Required     | string        | /                                                            |
+| registration | The process performs registration by default. If the input data is already registered and no additional algorithmic registration is needed, use parameter `--registration 0` | Optional     | int           | /                                                            |
+| overwriter   | If the automated registration result of Stereo3D does not meet requirements, perform manual registration operations on the automatically registered files, then feed back into the Stereo3D process to output new results, use parameter `--overwriter 0` | Optional     | int           | Example see [4. Reconnect to Stereo3D Pipeline](https://github.com/STOmics/stereo3d/blob/dev/docs/Manual%20Registration%20SOP_v1.md) |
+| align        | If only the matrix is input, matrix reconstruction results can be generated, outputting only the registered H5AD and organ mesh, use parameter `--align paste` | Optional     | string        | Example see [3.2.3.2](https://github.com/STOmics/stereo3d/blob/dev/docs/%E2%80%8B3D%20Reconstruction%20Solution%20Operational%20Manual%E2%80%8B.md) |
 
 #### 2.3.1.3 **Standard Output File Introduction**
 
@@ -400,7 +400,6 @@ d. Output Result Display
 <div align="center">
   <img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/jP2lRYKDKaYJ6O8g/img/8f80c78c-f3f9-4e42-87c4-41c949739d9b.gif" alt="image3.gif" width="30%">
 </div>
-
 <div align="center">Model Result Display</div>
 
 <div align="center">
@@ -531,7 +530,7 @@ python saw_hub.py \
 
 ### 3.3.2 **Multiple Tissues on One Chip Scenario Processing**
 
-Due to small tissue size, multiple sections are mounted on one spatial-temporal chip, or multiple tissues are embedded in one block and then sectioned and mounted, resulting in multiple tissues on one chip. For such data, the experimental side needs xxxxxx (to be added later); on the data processing side, it needs to be split into individual tissues before being input into the Stereo3D pipeline for reconstruction. For data processing, there are manual splitting solutions and automated splitting solutions.
+Due to small tissue size, multiple sections are mounted on one spatial-temporal chip, or multiple tissues are embedded in one block and then sectioned and mounted, resulting in multiple tissues on one chip. on the data processing side, it needs to be split into individual tissues before being input into the Stereo3D pipeline for reconstruction. For data processing, there are manual splitting solutions and automated splitting solutions.
 
 a. Manual Splitting Solution primarily uses the tools StereoMap and SAW. For specific operations, please refer to [《Multiple Manual Splitting Solution for One Chip》](https://github.com/STOmics/stereo3d/blob/dev/docs/Multiple%20Manual%20Splitting%20Solution%20for%20One%20Chip.md).
 
