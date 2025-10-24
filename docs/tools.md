@@ -11,7 +11,7 @@
 
 
 ## 1. saw_hub
-If you have obtained the standard output results of SAW, you first need to use the gadget saw_hub.py in Stereo3D to convert the data into the standard input format of Stereo3D.
+If you have the standard output results from SAW, in addition to manually standardizing the input, you can also use the small tool `saw_hub.py` in Stereo3D to convert the data into the standard input format for Stereo3D. `saw_hub.py` prioritizes obtaining `raw.gef` from the SAW standard output results. If not available, it obtains `gem.gz` and automatically converts `gem.gz` to `gef`.
 
 ### Usage
 ```shell
@@ -43,7 +43,7 @@ python saw_hub.py \
 
 ## 2. anno_adata_support
 
-User-annotated results are incorporated into the stereo3D pipeline, where coordinate transformation is performed using parameters from "02.merge" to generate both transformed *.h5ad files and 3D organ outputs.
+`anno_adata_support.py` is a tool specifically designed for spatial transcriptomics data analysis, used to integrate already annotated/clustered H5AD format data (Scanpy standard) as a breakpoint into the Stereo3D analysis pipeline. This tool seamlessly integrates external annotation data based on the original Stereo3D analysis results, generating new Stereo3D results while retaining all intermediate results from the original analysis pipeline.
 
 ### Usage
 ```bash
@@ -56,7 +56,7 @@ D:\00.user\stereo3D\Drosophila_melanogaster_demo\output
 D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\01.align_mask\align_info.json
 -cj
 D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\00.crop_mask\mask_cut_info.json
-```  
+```
 
 ##### Input Parameters 
 
@@ -75,6 +75,7 @@ D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\00.crop_mask
 |  11.tans_adata    | Output H5AD file containing modified x/y coordinates and newly generated z-coordinates    |
 |  12.adata_organ         | The new 3D organ files |
 
+For specific operations, please refer to [《Annotation/Clustering Breakpoint Integration and Display》](https://github.com/STOmics/stereo3d/blob/dev/docs/AnnotationClustering%20Breakpoint%20Integration%20and%20Display.md) --- **Use Case: Annotation/Clustering Breakpoint Integration**
 
 ## 3. stereo3d_viewer
 
@@ -95,64 +96,17 @@ pip install jupyter notebook k3d numpy anndata seaborn
 jupyter notebook
 ```
 
-## 4. stereo3d_with_matrix
-### 4.1 After manual image registration is completed, it needs to be reconnected to the Stereo3D workflow to generate new results, and the -overwriter parameter is required.
+For specific operations, please refer to [《Annotation/Clustering Breakpoint Integration and Display》](https://github.com/STOmics/stereo3d/blob/dev/docs/AnnotationClustering%20Breakpoint%20Integration%20and%20Display.md) **--- Use Case: Annotation/Clustering Effect Display**
 
-### Usage
-```shell
-python stereo3d_with_matrix.py \
---matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
---tissue_mask E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.mask \
---record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
---output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
---overwriter 0
-```
-##### Input Parameters 
-| Name        | Description                 | Importance | Dtype  |
-|-------------|-----------------------------|------------|--------|
-| matrix      | The path of matrix file     | Required   | string |
-| mask        | The path of tissue cut file | Required   | string |
-| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)             | Required   | string |
-| output      | The output path             | Required   | string |
-| overwriter  | --overwriter 0 means not overwriting existing results, while --overwriter 1 means overwriting existing results. | Required   | int |
+## 4. multi_tissue
 
-### Output
-|    File Name    |    Description     |
-|-----------------|--------------------|
-|  02.register    | Registered tissue mask images after alignment    |
-|  03.gem         | Spatial expression matrix after registration |
-|  04.mesh        | 3D mesh model reconstructed from clustered point clouds |
-|  05.transform   | Annotated H5AD file containing spatial coordinates and cell metadata |
-|  06.color       | H5AD file with unified color mapping for  visualization |
-|  07.organ       | Segmented organ-specific mesh models |
-
-
-### 4.2 With only matrix data available, the paste command can be utilized to generate registration results with cluster annotations and organ meshes.
-### Usage
-```shell
-python stereo3d_with_matrix.py \
---matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\01.gem \
---record_sheet E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\E-ST20220923002_slice_records_E14_16.xlsx \
--output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
--align paste
-```
-##### Input Parameters 
-| Name        | Description                 | Importance | Dtype  |
-|-------------|-----------------------------|------------|--------|
-| matrix      | The path of matrix file     | Required   | string |
-| record_sheet | Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)      | Required   | string |
-| output      | The output path             | Required   | string |
-| align      | Using the paste method to achieve alignment | Required   | string |
-
-##### Output file
-|    File Name    |    Description     |
-|-----------------|--------------------|
-|  06.color       | H5AD file with unified color mapping for  visualization |
-|  07.organ       | Segmented organ-specific mesh models |
-
-## 5. multi_tissue
+Due to small tissue size, multiple sections are mounted on one spatial-temporal chip, or multiple tissues are embedded in one block and then sectioned and mounted, resulting in multiple tissues on one chip. on the data processing side, it needs to be split into individual tissues before being input into the Stereo3D pipeline for reconstruction. For data processing, there are manual splitting solutions and automated splitting solutions.
 
 A tool for splitting multi-tissue samples on spatial transcriptomics chips, which can identify multiple tissue regions on the same chip and segment them into independent units.
+
+a. Manual Splitting Solution primarily uses the tools StereoMap and SAW. For specific operations, please refer to [《Multiple Manual Splitting Solution for One Chip》](https://github.com/STOmics/stereo3d/blob/dev/docs/Multiple%20Manual%20Splitting%20Solution%20for%20One%20Chip.md).
+
+b. Automated Splitting Solution uses the tool `multi_tissue.py` within Stereo3D. For specific operations, please refer to [《Multiple Automatic Splitting Solution for One Chip》](https://github.com/STOmics/stereo3d/blob/dev/docs/Multiple%20Automatic%20Splitting%20Solution%20for%20One%20Chip.md).
 
 ### Usage
 ```shell
@@ -179,7 +133,7 @@ python multi_tissue.py \
 |  sn_YYYYMMDD.lasso.geojson   |  Label file compatible with stereoMap |
 
 
-## 6. spateo-3d
+## 5. spateo-3d
 Here, we use the spateo framework to build a simple process to input multiple adjacent slices of h5ad files and output the aligned h5ad files and 3D model files. The output format is consistent with the input of spateo-viewer, so the results can be rendered and viewed on it.
 
 ## Test dataset
@@ -214,7 +168,7 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     -cluster annotation \
     -cluster_pts 1000
     ```
-  
+
 ##### Input Parameters 
   |  Name   | Description                                                                                                                                                                                                                                                                        | Importance | Dtype  |
   |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|--------|
