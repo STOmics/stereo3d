@@ -1,7 +1,6 @@
-
-<h1 align="center">
-  <img src="docs/lamprey.gif" width=50% height=50%><br/>
-</h1>
+<div align="center">
+  <img src="https://raw.githubusercontent.com/STOmics/stereo3d/dev/docs/lamprey.gif" width="70%">
+</div>
 
 <h4 align="center">
   Stereo3D: Auto get stereo 3D data with Python
@@ -35,23 +34,52 @@ pip install -r requirements.txt
 ### Core Scripts 
 The main functionalities of Stereo3D are implemented via the following scripts:
 
-```bash
+```
 stereo3d/stereo3d_with_matrix.py        # Main script for 3D reconstruction from matrix data
 ```
 
 ### Parameter Documentation
 
-Key parameters:
+**Input Parameter Introduction**
 
-* ```--matrix_path```  The [saw](https://github.com/STOmics/SAW) input files(gene matrix)
-* ```--tissue_mask```  The [saw](https://github.com/STOmics/SAW) output files(`<SN>_<staintype>_tissue_cut.tif`), [details](https://stereotoolss-organization.gitbook.io/saw-user-manual-v8.2/analysis/outputs/count-outputs)
-* ```--record_sheet``` Record sheet file. We provide you with a [sample](docs/E-ST20220923002_slice_records_20221110.xlsx), click for [detail](docs/extra.md)
-* ```--output```       Output directory
+| **Input**    | **Description**                                              | **Required** | **Data Type** | **Remarks**                                                  |
+| :----------- | :----------------------------------------------------------- | :----------- | :------------ | :----------------------------------------------------------- |
+| matrix_path  | Standard format gene expression matrix, supports raw.gef/gef/gem.gz | Required     | string        | /                                                            |
+| tissue_mask  | Tissue mask image, tif format                                | Required     | string        | /                                                            |
+| record_sheet | Obtained from the experimental side, records slice positions, correspondence between preceding and subsequent slices | Required     | string        | /                                                            |
+| output       | Result save path                                             | Required     | string        | /                                                            |
+| registration | The process performs registration by default. If the input data is already registered and no additional algorithmic registration is needed, use parameter `--registration 0` | Optional     | int           | /                                                            |
+| overwriter   | If the automated registration result of Stereo3D does not meet requirements, perform manual registration operations on the automatically registered files, then feed back into the Stereo3D process to output new results, use parameter `--overwriter 0` | Optional     | int           | Example see [4. Reconnect to Stereo3D Pipeline](https://github.com/STOmics/stereo3d/blob/dev/docs/Manual%20Registration%20SOP_v1.md) |
+| align        | If only the matrix is input, matrix reconstruction results can be generated, outputting only the registered H5AD and organ mesh, use parameter `--align paste` | Optional     | string        | Example see [3.2.3.2](https://github.com/STOmics/stereo3d/blob/dev/docs/%E2%80%8B3D%20Reconstruction%20Solution%20Operational%20Manual%E2%80%8B.md) |
+
+**Standard Output File Introduction**
+
+| **Output File** | **Description**                                              |
+| :-------------- | :----------------------------------------------------------- |
+| 02.register     | Registered tissue mask images after alignment                |
+| 03.gem          | Spatial expression matrix after registration                 |
+| 04.mesh         | 3D mesh model reconstructed from clustered point clouds      |
+| 05.transform    | Annotated H5AD file containing spatial coordinates and cell metadata |
+| 06.color        | H5AD file with unified color mapping for visualization       |
+| 07.organ        | Segmented organ-specific mesh models                         |
 
 Run ```python stereo3d_with_matrix.py --help``` for detail.
 
+### **Viewing Results**
+
+After completing the data normalisation and running stereo3d_with_matrix.py to output the results, the results can be viewed by following the steps in the documentation [2.3.1.4](https://github.com/STOmics/stereo3d/blob/dev/docs/%E2%80%8B3D%20Reconstruction%20Solution%20Operational%20Manual%E2%80%8B.md) to view the results
+
 ## Demo Case
 ### Drosophila Embryo 3D Reconstruction Example
+
+#### 1.Test Data Introduction
+
+| Species Tissue | Download Path                                                | File Size |
+| :------------- | :----------------------------------------------------------- | :-------- |
+| Drosophila     | https://bgipan.genomics.cn/#/link/wSnaxQhJ6i5RTPcYvtgI Extraction password: FJrY | 90 MB     |
+
+#### 2.code running
+
 ```shell
 python stereo3d_with_matrix.py \
 --matrix_path E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\00.gem \
@@ -60,38 +88,41 @@ python stereo3d_with_matrix.py \
 --output E:\3D_demo\Drosophila_melanogaster\00.raw_data_matrix\Drosophila_melanogaster_demo\output
 ```
 
-Download the complete demo dataset (~90MB) from: 
+#### 3.log display
 
-[Drosophila_melanogaster_demo.zip](https://bgipan.genomics.cn/#/link/wSnaxQhJ6i5RTPcYvtgI) Extraction password:**FJrY**
+<img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/jP2lRYKDKaYJ6O8g/img/5bc75b9e-1d15-4c3a-a6de-a9db3f0ea65d.png" alt="image.png" style="zoom:80%;" />
 
-### Output
-|    File Name    |    Description     |
-|-----------------|--------------------|
-|  02.register    | Registered tissue mask images after alignment    |
-|  03.gem         | Spatial expression matrix after registration |
-|  04.mesh        | 3D mesh model reconstructed from clustered point clouds |
-|  05.transform   | Annotated H5AD file containing spatial coordinates and cell metadata |
-|  06.color       | H5AD file with unified color mapping for  visualization |
-|  07.organ       | Segmented organ-specific mesh models |
+#### 4.Expected Result Display
 
+<div align="center">
+  <img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/jP2lRYKDKaYJ6O8g/img/06219592-7a05-41de-a11f-fcaa2674e456.png" alt="image" width="20%" style="margin-right: 10px;">
+  <img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/jP2lRYKDKaYJ6O8g/img/d2d4ab6a-d3af-4e51-8bb0-4902ec4364c3.png" alt="image" width="20%" style="margin-left: 10px;">
+</div>
 
+<div align="center">Pairwise Registration Result Display</div>
 
-#### Expected Results
+<div align="center">
+  <img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/jP2lRYKDKaYJ6O8g/img/8f80c78c-f3f9-4e42-87c4-41c949739d9b.gif" alt="image3.gif" width="30%">
+</div>
 
-#### 3D Visualization of Clustering Results
+<div align="center">Model Result Display</div>
+
 The following GIF demonstrates the 3D spatial distribution of single-cell clustering results:
 
-<div align="left">
-  <img src="docs/drosophila_melanogaster.gif" alt="3D visualization of cell clusters" width="50%" height="auto" >
-
+<div align="center">
+  <img src="https://raw.githubusercontent.com/STOmics/stereo3d/dev/docs/drosophila_melanogaster.gif" alt="drosophila_melanogaster.gif" width="70%">
 </div>
+
+
+
+<div align="center">Post-Clustering Effect Display</div>
 
 
 ## Reference
 
 ### Related Tools
 Stereo3D includes a suite of modular tools for spatial data analysis, visualization, and integration with SAW/Spateo workflows.
-Explore our full suite of tools and their documentation [here](docs/tools.md).
+Explore our full suite of tools and their documentation [here](https://github.com/STOmics/stereo3d/blob/dev/docs/tools.md).
 
 
-For more detailed instructions, you need to visit [here](docs/extra.md)
+For more detailed instructions, you need to visit [here](https://github.com/STOmics/stereo3d/blob/dev/docs/extra.md)
