@@ -2,6 +2,7 @@ import os
 import json
 import shutil
 import gzip
+from turtle import width
 
 import numpy as np
 import pandas as pd
@@ -9,9 +10,10 @@ import h5py
 
 from glob import glob
 from tqdm import tqdm
+from stereo3d.manual.align_parameters import apply_affine_deformation
 
 
-def trans_points(x, y, offset=None, mat=None):
+def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
     """
     Args:
         x:
@@ -21,13 +23,24 @@ def trans_points(x, y, offset=None, mat=None):
     Returns:
         coord: x, y
     """
+    if map_x is not None and map_y is not None:
+        x_array = x.values
+        y_array = y.values
+        
+        new_x = map_x[y_array, x_array]  
+        new_y = map_y[y_array, x_array]
+        
+        x = pd.Series(new_x, index=x.index, name=x.name)
+        y = pd.Series(new_y, index=y.index, name=y.name)
+
     if offset:
         x = x - offset[0]
         y = y - offset[1]
 
     coord = np.array([x, y])
     coord = coord.transpose(1, 0)
-
+    if mat and len(mat) > 3:
+        mat = mat[2:]
     if mat:
         coord = np.concatenate([coord, np.ones((coord.shape[0], 1))], axis=1)
         cor_trans_val = np.transpose(coord)
@@ -106,27 +119,39 @@ def read_gem_from_gef(gef_file):
     return df
 
 
-def gef_trans(gef_file, offset, mat, output_path):
+def gef_trans(gef_file, offset, mat, shape, output_path):
     shutil.copy(gef_file, output_path)
+    map_x = None
+    map_y = None
+    if mat and len(mat) > 3:
+        p = mat[0]
+        q = mat[1]
+        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
     with h5py.File(output_path, 'r+') as h:
         expression = h['geneExp']['bin1']['expression'][:]
-        new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat)
+        new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat, map_x, map_y)
         h['geneExp']['bin1']['expression']['x'] = new_x
         h['geneExp']['bin1']['expression']['y'] = new_y
 
 
-def anndata_trans(adata_file, offset, mat, output_path):
+def anndata_trans(adata_file, offset, mat, shape, output_path):
     import scanpy as sc
     adata = sc.read_h5ad(adata_file)
+    map_x = None
+    map_y = None
+    if mat and len(mat) > 3:
+        p = mat[0]
+        q = mat[1]
+        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
     if "spatial" in adata.obsm.keys():
         x, y = adata.obsm["spatial"][:, 0], adata.obsm["spatial"][:, 1]
-        new_x, new_y = trans_points(x, y, offset, mat)
+        new_x, new_y = trans_points(x, y, offset, mat, map_x, map_y)
         adata.obsm["spatial"][:, 0] = new_x
         adata.obsm["spatial"][:, 1] = new_y
         adata.write_h5ad(output_path)
 
 
-def gem_trans(gem_file, offset, mat, output_path):
+def gem_trans(gem_file, offset, mat, shape, output_path):
     """
     Args:
         gem_file:
@@ -135,11 +160,18 @@ def gem_trans(gem_file, offset, mat, output_path):
         output_path: str - With file name
     """
     gem = gem_read(gem_file)
+    
+    map_x = None
+    map_y = None
+    if mat and len(mat) > 3:
+        p = mat[0]
+        q = mat[1]
+        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
 
     # gem['x'] = gem['x'] - min(gem['x'])
     # gem['y'] = gem['y'] - min(gem['y'])
 
-    new_x, new_y = trans_points(gem['x'], gem['y'], offset, mat)
+    new_x, new_y = trans_points(gem['x'], gem['y'], offset, mat, map_x, map_y)
 
     gem['x'] = np.int_(np.round(new_x))
     gem['y'] = np.int_(np.round(new_y))
@@ -184,16 +216,17 @@ def trans_matrix_by_json(gem_path, cut_json_path, align_json_path, output_path):
         if mask_cut is not None or align is not None:
             # mask_cut = None
             mat = align['mat']
+            shape = align['shape']
             if matrix_file.endswith('txt') or matrix_file.endswith('gem') or matrix_file.endswith('gem.gz'):
                 gem_trans(
-                    matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.gem")
+                    matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.gem")
                 )
             elif matrix_file.endswith('gef'):
                 gef_trans(
-                    matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.gef")
+                    matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.gef")
                 )
             elif matrix_file.endswith('.h5ad'):
-                anndata_trans(matrix_file, mask_cut, mat, os.path.join(output_path, f"{matrix_name}.h5ad"))
+                anndata_trans(matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.h5ad"))
 
 
 if __name__ == "__main__":

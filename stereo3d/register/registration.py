@@ -512,15 +512,18 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
                     break
             if len(manual_mat) == 1:
                 combine_manual_mat = manual_mat[0]
+                if register_mat is None:
+                    _register_mat = combine_manual_mat
+                    info_dict[name_list[0]]['shape'] = shape
+                else:
+                    _register_mat = combine_manual_mat @ np.array(register_mat)
             else:
-                combine_manual_mat = np.eye(3)
-                for mat in reversed(manual_mat[1:]):
-                    combine_manual_mat = mat @ combine_manual_mat
-            if register_mat is None:
-                _register_mat = combine_manual_mat
-                info_dict[name_list[0]]['shape'] = shape
-            else:
-                _register_mat = combine_manual_mat @ np.array(register_mat)
+                _register_mat = manual_mat[-1]
+                if register_mat is None:
+                    info_dict[name_list[0]]['shape'] = shape
+                else:
+                    #_register_mat = combine_manual_mat @ np.array(register_mat)
+                    _register_mat = _register_mat + register_mat
             #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
