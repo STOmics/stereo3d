@@ -80,46 +80,7 @@ class Stereo3DwithTissueMatrix(object):
                 glog.info("Files all exist, skip crop mask.")
 
         return crop_mask_path
-
-    def _register_adata(self, gene_file_path: str):
-        from stereo3d.register.adata_registration import align
-        from stereo3d.h5ad.txt2adata import batch_cluster, batch_spatial_leiden
-        from stereo3d.h5ad.uniform_cluster_color_v2 import uniform_cluster_color
-        from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype
-        from stereo3d.h5ad.uniform_cluster_color_v2 import organ_mesh
-
-        color_h5ad = os.path.join(self.output_path, '06.color')
-        organ = os.path.join(self.output_path, '07.organ')
-        for i in [color_h5ad, organ]:
-            if not os.path.exists(i): os.makedirs(i)
-
-        batch_cluster(matrix_dir=gene_file_path, save_dir=color_h5ad)
-        batch_spatial_leiden(h5ad_path=color_h5ad, save_path=color_h5ad)
-        h5ad_list = [os.path.join(color_h5ad, i) for i in os.listdir(color_h5ad) if i.endswith('.h5ad')]
-        categories = uniform_cluster_color(h5ad_list, color_h5ad)
-        glog.info('Cluster total categories are {}'.format(categories))
-
-        align(
-            adata=color_h5ad,
-            key='spatial_mm',
-            regis_key='spatial_regis',
-            anno='leiden',
-            anno_color='leiden_colors',
-            method='paste',
-            file_path=color_h5ad,
-            output_path=color_h5ad,
-        )
-
-        for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
-            organ_path_ = read_and_parse_by_celltype(
-                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype=c,
-                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None)
-            try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
-            except Exception as e:
-                glog.error(f"Organ {c}: {e}")
-        glog.info('Completed insert organ')
-
+    
     def _register(self, crop_mask_path):
         from stereo3d.register.registration import align_slices, manual_align
         # align mask
@@ -275,8 +236,10 @@ class Stereo3DwithTissueMatrix(object):
         self._overwrite_flag = True if overwrite else False
 
         if align_method == 'paste':
+            glog.info("----------01.----------")
             glog.info("----------02.Align by paste----------")
-            self._register_adata(self.matrix_path)
+            from stereo3d.register.adata_registration import align
+            self._register(self.matrix_path)
 
         else:
             glog.info("----------01.Extract data----------")

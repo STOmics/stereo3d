@@ -13,7 +13,7 @@ import numpy as np
 import anndata as ad
 import matplotlib.pyplot as plt
 
-from .paste import pairwise_align as paste_align, \
+from paste import pairwise_align as paste_align, \
     generalized_procrustes_analysis, \
     paste_align_accuracy
 
@@ -78,9 +78,9 @@ class AlignSlicer:
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         fig.savefig(os.path.join(self.out_dir, spatial + "_plot.png"))
-        glog.info("save plot in " + os.path.join(self.out_dir, spatial + "_plot.png"))
-        # plt.show()
-        # plt.close(fig)
+        print("save plot in " + os.path.join(self.out_dir, spatial + "_plot.png"))
+        plt.show()
+        plt.close(fig)
 
     # x,y coordinates are taken for the function of registration
     def align_2d(self):
@@ -108,12 +108,12 @@ class Paste(AlignSlicer):
         super().__init__(adata_list, h5ad_path, out_dir, spatial_key, spatial_regis_key, anno, anno_color)
 
     def align(self):
-        glog.info("Before align...")
+        print("Before align...")
         self.plot(self.adata_list, self.spatial_key)
-        glog.info("Using PASTE algorithm for alignment.")
+        print("Using PASTE algorithm for alignment.")
         adata_st_list = self.align_2d()
         # Align spots
-        glog.info("Aligning spots...")
+        print("Aligning spots...")
         pis = []
         # Calculate pairwise transformation matrices
         for i in range(len(adata_st_list) - 1):
@@ -130,9 +130,9 @@ class Paste(AlignSlicer):
                                                      adata_st_list[i + 1].obsm[self.spatial_key],
                                                      pis[i])
             adata_st_list[i + 1].obsm[self.spatial_regis_key] = S2
-        glog.info("save align coordinates in .obsm" + '_' + self.spatial_regis_key)
+        print("save align coordinates in .obsm" + '_' + self.spatial_regis_key)
         adata_st_list = self.align_3d(adata_st_list)
-        glog.info("After align...")
+        print("After align...")
         self.plot(adata_st_list, self.spatial_regis_key)
         return adata_st_list, pis
 
