@@ -9,7 +9,7 @@ from scipy.spatial.distance import cdist
 
 def compute_weights(p, v, alpha=1.0):
     """
-    计算权重矩阵 w_ij = 1 / |p_j - v_i|^(2α)
+    weight matrix w_ij = 1 / |p_j - v_i|^(2α)
     
     Parameters:
     p : numpy array, shape (np, 2)
@@ -23,13 +23,12 @@ def compute_weights(p, v, alpha=1.0):
     w : numpy array, shape (nv, np)
         Weight matrix
     """
-    # 计算所有点对之间的距离
+    # distance between each target point and source control point
     distances = cdist(v, p, metric='euclidean')
     
-    # 避免除零，添加小常数
     distances = np.maximum(distances, 1e-8)
-    
-    # 计算权重: w_ij = 1 / |p_j - v_i|^(2α)
+
+    # weight: w_ij = 1 / |p_j - v_i|^(2α)
     w = 1.0 / (distances ** (2 * alpha))
     
     return w
@@ -64,7 +63,7 @@ def Precompute_pstar(p, w):
 
 def Precompute_Affine(p, v, w):
     """
-    修复版的预计算函数
+    
     """
     # Computing pstar
     pstar = Precompute_pstar(p, w)
@@ -72,35 +71,32 @@ def Precompute_Affine(p, v, w):
     np_points = p.shape[0]
     nv = v.shape[0]
     
-    # 预计算 phat
+    # phat
     phat = p - pstar[:, np.newaxis, :]  # shape: (nv, np, 2)
     
-    # 计算 M2 矩阵
+    # M2 matrix
     M2 = np.zeros((nv, 2, 2))
     for i in range(np_points):
         # w[:, i] shape: (nv,), phat[:, i] shape: (nv, 2)
         wi = w[:, i, np.newaxis, np.newaxis]  # shape: (nv, 1, 1)
         phi = phat[:, i, :, np.newaxis]  # shape: (nv, 2, 1)
         phi_T = phat[:, i, np.newaxis, :]  # shape: (nv, 1, 2)
-        
-        # 累加到 M2: w_i * phat_i^T * phat_i
+
         M2 += wi * (phi @ phi_T)
     
-    # 计算逆矩阵
     IM2 = np.zeros((nv, 2, 2))
     for k in range(nv):
         try:
             IM2[k] = solve(M2[k], np.eye(2))
         except np.linalg.LinAlgError:
             IM2[k] = np.linalg.pinv(M2[k])
-    
-    # 计算 F1 = (v - pstar) * IM2
+
     M1 = v - pstar  # shape: (nv, 2)
     F1 = np.zeros((nv, 2))
     for k in range(nv):
         F1[k] = M1[k] @ IM2[k]
-    
-    # 计算 A 矩阵
+
+    # A matrix
     A = np.zeros((nv, np_points))
     for i in range(np_points):
         # A[:, i] = F1 * phat_i * w_i
@@ -126,15 +122,12 @@ def apply_affine_deformation(height, width, p, q, alpha=1.0):
     
     y_coords, x_coords = np.mgrid[0:height, 0:width]
     v = np.column_stack([x_coords.ravel(), y_coords.ravel()])
-    
-    # 计算权重
-    print("Computing weights...")
+  
     w = compute_weights(p, v, alpha)
     
 
     A = Precompute_Affine(p, v, w)
-    
-    # 计算qstar
+
     nv = w.shape[0]
     qstar = np.zeros((nv, 2))
     for i in range(nv):
@@ -145,7 +138,6 @@ def apply_affine_deformation(height, width, p, q, alpha=1.0):
     
     print("Computing deformed positions...")
     deformed_positions = A @ q + qstar
-    print(deformed_positions.shape)
     
     deformed_positions[:, 0] = np.clip(deformed_positions[:, 0], 0, width - 1)
     deformed_positions[:, 1] = np.clip(deformed_positions[:, 1], 0, height - 1)
@@ -171,22 +163,17 @@ def apply_affine_deformation_faster(image, p, q, alpha=1.0):
     p = np.array(p).reshape(-1, 2)
     q = np.array(q).reshape(-1, 2)
     height, width = image.shape[:2]
-    
-    # 创建像素坐标网格
+
     y_coords, x_coords = np.mgrid[0:height, 0:width]
     v = np.column_stack([x_coords.ravel(), y_coords.ravel()])
     
-    # 计算权重
-    print("Computing weights...")
     w = compute_weights(p, v, alpha)
     
-    # 预计算
     '''print("Precomputing transformation...")
     data = Precompute_Affine(p, v, w)
     A = data['A']'''
     A = Precompute_Affine(p, v, w)
     
-    # 计算qstar
     nv = w.shape[0]
     qstar = np.zeros((nv, 2))
     for i in range(nv):
@@ -195,12 +182,8 @@ def apply_affine_deformation_faster(image, p, q, alpha=1.0):
         if total_weight > 1e-10:
             qstar[i, :] = np.dot(weights, q) / total_weight
     
-    # 使用矩阵乘法计算变形位置
-    print("Computing deformed positions...")
     deformed_positions = A @ q + qstar
-    print(deformed_positions.shape)
     
-    # 限制范围并创建输出图像
     deformed_positions[:, 0] = np.clip(deformed_positions[:, 0], 0, width - 1)
     deformed_positions[:, 1] = np.clip(deformed_positions[:, 1], 0, height - 1)
     
@@ -218,9 +201,7 @@ def apply_affine_deformation_faster(image, p, q, alpha=1.0):
 
 
 
-# 使用示例
 if __name__ == "__main__":
-    # 加载图片
     image = tifffile.imread(r"D:\stereo3d_data\demo\Drosophila_melanogaster_demo\demoresult\02.register\01.align_mask\A02183A5.tif")
     # control point
     p = [[992., 774.], [876., 498.], [670., 808.], [874., 1164.]]
@@ -228,6 +209,4 @@ if __name__ == "__main__":
     
     deformed_image = apply_affine_deformation_faster(image, q, p, alpha=1.0)
 
-    
-    # 保存结果
     tifffile.imwrite(r"D:\stereo3d_data\demo\Drosophila_melanogaster_demo\demoresult\02.register\01.align_mask\A02183A5_test.tif", deformed_image)

@@ -510,20 +510,23 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
                     name_list.append(k)
                     register_mat = v['mat']
                     break
-            if len(manual_mat) == 1:
+            if len(manual_mat) == 1: # rigid registration
                 combine_manual_mat = manual_mat[0]
                 if register_mat is None:
                     _register_mat = combine_manual_mat
                     info_dict[name_list[0]]['shape'] = shape
                 else:
                     _register_mat = combine_manual_mat @ np.array(register_mat)
-            else:
+                    _register_mat = _register_mat.tolist()
+            else: #elastic registration
                 _register_mat = manual_mat[-1]
                 if register_mat is None:
                     info_dict[name_list[0]]['shape'] = shape
                 else:
                     #_register_mat = combine_manual_mat @ np.array(register_mat)
-                    _register_mat = _register_mat + register_mat
+                    if isinstance(register_mat, (np.matrix, np.ndarray)):
+                        register_mat = register_mat.tolist()
+                    _register_mat = _register_mat + [*register_mat]
             #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
@@ -538,6 +541,8 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
             for k, v in _info_dict.items():
                 if _name in k:
                     continue
+                if isinstance(v['mat'], (np.matrix, np.ndarray)):
+                    v['mat'] = v['mat'].tolist()
                 info_dict[k]['mat'] = v['mat']
 
     #os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
