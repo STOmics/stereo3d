@@ -491,7 +491,7 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
     align_json = os.path.join(output_path, "align_info.json")
     info_dict = json.load(open(align_json, 'r'))
-    info_dict_or = info_dict.copy()
+    info_dict_or = info_dict.copy() # original info dict
 
     for ind, img_path in enumerate(images_list):
         name = os.path.basename(img_path).split(".")[0]

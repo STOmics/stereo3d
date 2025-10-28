@@ -163,7 +163,7 @@ class Stereo3DwithTissueMatrix(object):
         # Gem path
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
-        gem_save_path = os.path.join(self.output_path, "03.gem")
+        gem_save_path = os.path.join(self.output_path, "03.matrix")
         os.makedirs(gem_save_path, exist_ok=True)
 
         if self._overwrite_flag:

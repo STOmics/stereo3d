@@ -23,20 +23,7 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
     Returns:
         coord: x, y
     """
-    if map_x is not None and map_y is not None:
-        x_array = x.values
-        y_array = y.values
-        
-        new_x = map_x[y_array, x_array]  
-        new_y = map_y[y_array, x_array]
-        
-        x = pd.Series(new_x, index=x.index, name=x.name)
-        y = pd.Series(new_y, index=y.index, name=y.name)
-
-    if offset:
-        x = x - offset[0]
-        y = y - offset[1]
-
+    
     coord = np.array([x, y])
     coord = coord.transpose(1, 0)
     if mat and len(mat) > 3:
@@ -52,6 +39,22 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
 
         coord = np.concatenate([np.expand_dims(x_arr, axis=1),
                                 np.expand_dims(y_arr, axis=1)], axis=1)
+
+
+    if map_x is not None and map_y is not None:
+        x_temp = coord[:, 0].astype(int)
+        y_temp = coord[:, 1].astype(int)
+        
+        new_x = map_x[y_temp, x_temp]
+        new_y = map_y[y_temp, x_temp]
+        
+        
+        coord = np.column_stack([new_x, new_y])
+    
+    if offset:
+        coord[:, 0] = coord[:, 0] - offset[0]
+        coord[:, 1] = coord[:, 1] - offset[1]
+
 
     return coord[:, 0], coord[:, 1]
 
