@@ -110,13 +110,15 @@ class Stereo3DwithTissueMatrix(object):
             file_path=color_h5ad,
             output_path=color_h5ad,
         )
+        z_interval = self._slice_seq.z_interval
+        z_index_list = self._slice_seq.z_index_list
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
-                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype=c,
-                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None)
+                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
+                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
             except Exception as e:
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
@@ -161,7 +163,7 @@ class Stereo3DwithTissueMatrix(object):
         # Gem path
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
-        gem_save_path = os.path.join(self.output_path, "03.gem")
+        gem_save_path = os.path.join(self.output_path, "03.matrix")
         os.makedirs(gem_save_path, exist_ok=True)
 
         if self._overwrite_flag:
@@ -182,14 +184,15 @@ class Stereo3DwithTissueMatrix(object):
          
         z_interval = self._slice_seq.z_interval
         z_interval_dict = self._slice_seq.get_z_interval(index='short')
+        pixel4mm = self._slice_seq.size_per_pixel
         crop_tissue_list = [os.path.join(align_output_path, os.path.basename(i)) for i in self._tissue]
 
-        mask_z_interval = list()
+        '''mask_z_interval = list()
         for mask in crop_tissue_list:
             ind = os.path.basename(mask).split('.')[0]
             for k, v in z_interval_dict.items():
-                if k == ind: mask_z_interval.append(v)
-
+                if k == ind: mask_z_interval.append(v)'''
+        mask_z_interval = self._slice_seq.z_index_list
         mesh_output_path = os.path.join(self.output_path, "04.mesh")
         if not os.path.exists(mesh_output_path): os.makedirs(mesh_output_path, exist_ok=True)
         points_3d = get_mask_3d_points(crop_tissue_list,
@@ -226,22 +229,26 @@ class Stereo3DwithTissueMatrix(object):
         color_h5ad = os.path.join(self.output_path, '06.color')
         transform_h5ad = os.path.join(self.output_path, '05.transform')
         organ = os.path.join(self.output_path, '07.organ')
+
+        z_interval = self._slice_seq.z_interval
+        z_index_list = self._slice_seq.z_index_list
+
         for i in [color_h5ad, transform_h5ad, organ]: 
             if not os.path.exists(i): os.makedirs(i)
 
         batch_cluster(matrix_dir=align_matrix, save_dir=transform_h5ad)
         batch_spatial_leiden(h5ad_path=transform_h5ad, save_path=transform_h5ad)
         h5ad_list = [os.path.join(transform_h5ad, i) for i in self._h5ad_list()]
-        categories = uniform_cluster_color(h5ad_list, color_h5ad)
+        categories = uniform_cluster_color(h5ad_list, color_h5ad, z_index_list = z_index_list)
         glog.info('Cluster total categories are {}'.format(categories))
         color_h5ad_list = [os.path.join(color_h5ad, i) for i in self._h5ad_list()]
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
-                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None)
+                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
             except Exception as e:
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
@@ -291,7 +298,7 @@ class Stereo3DwithTissueMatrix(object):
             glog.info('Completed crop tissue mask and save the result.')
 
             glog.info("----------03.Register Mask----------")
-            align_output_path = self._register(crop_mask_path)#get info_dict for every image, be reused in gene transform
+            align_output_path = self._register(crop_mask_path)
             glog.info('Completed adjacent slice alignment.')
 
             glog.info("----------04.Transform Gene----------")

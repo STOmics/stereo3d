@@ -1,6 +1,7 @@
 import scanpy as sc
 import numpy as np
 import argparse
+import pandas as pd
 
 import os
 import sys
@@ -17,7 +18,7 @@ from stereo3d.gem.transform import trans_matrix_by_json
 from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype, organ_mesh
 
 
-def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
+def create_3D_coord(h5ad_list, out_path, cluster_key="leiden", z_index_list=[]):
     adatas = []
     for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad', ncols=100):
         adata = sc.read_h5ad(file)
@@ -31,7 +32,7 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
         sub_data.obsm['spatial_mm'][:, 1] = sub_data.obsm['spatial'][:, 1] * 500 / 1000000
         categories = categories+sub_data.obs[cluster_key].tolist()
 
-        z_value = [i * 0.008] * sub_data.obs.shape[0]
+        z_value = [z_index_list[i]] * sub_data.obs.shape[0]
         z_value = np.array(z_value).reshape(-1, 1)
 
         sub_data.obsm['spatial_mm'] = np.hstack([sub_data.obsm['spatial_mm'], z_value])
@@ -43,7 +44,13 @@ def create_3D_coord(h5ad_list, out_path, cluster_key="leiden"):
 def adata_insert_organ(matrix_path, output_path,
                        cut_json_path: [str, None] = None,
                        align_json_path: [str, None] = None,
-                       cluster_key: str = "leiden"):
+                       cluster_key: str = "leiden",
+                       record_sheet: str = ''):
+    df = pd.read_excel(record_sheet, sheet_name="SliceSequence")
+    z_index_list = df["Z_index"].tolist()
+    meta = pd.read_excel(record_sheet, sheet_name="Meta")
+    dct = meta.to_dict(orient='list')
+    z_interval = float(dct['Z-interval'][0].replace('mm', ''))
     trans_adata_path = os.path.join(output_path, "11.tans_adata")
     os.makedirs(trans_adata_path, exist_ok=True)
     organ_path = os.path.join(output_path, "12.adata_organ")
@@ -62,12 +69,12 @@ def adata_insert_organ(matrix_path, output_path,
                 shutil.copy2(source_path, target_path)
 
     h5ad_list = [os.path.join(trans_adata_path, i) for i in os.listdir(trans_adata_path) if i.endswith(".h5ad")]
-    categories = create_3D_coord(h5ad_list, trans_adata_path, cluster_key)
+    categories = create_3D_coord(h5ad_list, trans_adata_path, cluster_key, z_index_list =z_index_list )
     for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
         organ_path_ = read_and_parse_by_celltype(
             outdir=organ_path, spatial_regis='spatial_mm', anno=cluster_key, celltype=c,
-            adata_list=None, h5ad_list=h5ad_list, sc_xyz=None)
-        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+            adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
+        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
     glog.info('Completed insert organ')
 
 
@@ -78,7 +85,8 @@ def main(args, para):
                        output_path=args.output_path,
                        cut_json_path=args.cut_json_path,
                        align_json_path=args.align_json_path,
-                       cluster_key=args.cluster_key)
+                       cluster_key=args.cluster_key,
+                       record_sheet = args.record_sheet)
     glog.info('Finished: custom clustering 3D result in 12.adata_organ')
 
 
@@ -97,6 +105,8 @@ if __name__ == "__main__":
                         help="align json path.")
     parser.add_argument("-ck", "--cluster_key", action="store", dest="cluster_key", type=str, default="leiden",
                         help="the save cluster label ")
+    parser.add_argument("-rs", "--record_sheet", action="store", dest="record_sheet", type=str, required=True,
+                        help="record sheet path ")
     parser.set_defaults(func=main)
     (para, args) = parser.parse_known_args()
     para.func(para, args)
