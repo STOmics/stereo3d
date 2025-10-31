@@ -26,6 +26,7 @@ class Stereo3DwithTissueMatrix(object):
         self._tissue: list = None
 
         self._overwrite_flag: bool = True
+        self._registration_flag: bool = True
         self._slice_seq = SliceSequence()
 
         # sn_name = ss.get_chip_seq()
@@ -80,7 +81,48 @@ class Stereo3DwithTissueMatrix(object):
                 glog.info("Files all exist, skip crop mask.")
 
         return crop_mask_path
-    
+
+    def _register_adata(self, gene_file_path: str):
+        from stereo3d.register.adata_registration import align
+        from stereo3d.h5ad.txt2adata import batch_cluster, batch_spatial_leiden
+        from stereo3d.h5ad.uniform_cluster_color_v2 import uniform_cluster_color
+        from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype
+        from stereo3d.h5ad.uniform_cluster_color_v2 import organ_mesh
+
+        color_h5ad = os.path.join(self.output_path, '06.color')
+        organ = os.path.join(self.output_path, '07.organ')
+        for i in [color_h5ad, organ]:
+            if not os.path.exists(i): os.makedirs(i)
+
+        batch_cluster(matrix_dir=gene_file_path, save_dir=color_h5ad)
+        batch_spatial_leiden(h5ad_path=color_h5ad, save_path=color_h5ad)
+        h5ad_list = [os.path.join(color_h5ad, i) for i in os.listdir(color_h5ad) if i.endswith('.h5ad')]
+        categories = uniform_cluster_color(h5ad_list, color_h5ad)
+        glog.info('Cluster total categories are {}'.format(categories))
+
+        align(
+            adata=color_h5ad,
+            key='spatial_mm',
+            regis_key='spatial_regis',
+            anno='leiden',
+            anno_color='leiden_colors',
+            method='paste',
+            file_path=color_h5ad,
+            output_path=color_h5ad,
+        )
+        z_interval = self._slice_seq.z_interval
+        z_index_list = self._slice_seq.z_index_list
+
+        for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
+            organ_path_ = read_and_parse_by_celltype(
+                outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
+                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
+            try:
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
+            except Exception as e:
+                glog.error(f"Organ {c}: {e}")
+        glog.info('Completed insert organ')
+
     def _register(self, crop_mask_path):
         from stereo3d.register.registration import align_slices, manual_align
         # align mask
@@ -97,12 +139,12 @@ class Stereo3DwithTissueMatrix(object):
         if not os.path.exists(align_output_path): os.makedirs(align_output_path)
 
         if self._overwrite_flag:
-            align_slices(crop_tissue_list, align_output_path)
+            align_slices(crop_tissue_list, align_output_path, registration = self._registration_flag)
             glog.info('Align mask is overwrite the files.')
         else:
             files_num = len(os.listdir(align_output_path)) - 1
             if files_num != len(crop_tissue_list):
-                align_slices(crop_tissue_list, align_output_path)
+                align_slices(crop_tissue_list, align_output_path, registration = self._registration_flag)
                 glog.info('Align mask updated.')
             else:
                 if check_manual(os.listdir(align_output_path)):
@@ -121,7 +163,7 @@ class Stereo3DwithTissueMatrix(object):
         # Gem path
         crop_json_path = os.path.join(self.output_path, "02.register", "00.crop_mask", "mask_cut_info.json")
         align_json_path = os.path.join(self.output_path, "02.register", "01.align_mask", "align_info.json")
-        gem_save_path = os.path.join(self.output_path, "03.gem")
+        gem_save_path = os.path.join(self.output_path, "03.matrix")
         os.makedirs(gem_save_path, exist_ok=True)
 
         if self._overwrite_flag:
@@ -142,14 +184,15 @@ class Stereo3DwithTissueMatrix(object):
          
         z_interval = self._slice_seq.z_interval
         z_interval_dict = self._slice_seq.get_z_interval(index='short')
+        pixel4mm = self._slice_seq.size_per_pixel
         crop_tissue_list = [os.path.join(align_output_path, os.path.basename(i)) for i in self._tissue]
 
-        mask_z_interval = list()
+        '''mask_z_interval = list()
         for mask in crop_tissue_list:
             ind = os.path.basename(mask).split('.')[0]
             for k, v in z_interval_dict.items():
-                if k == ind: mask_z_interval.append(v)
-
+                if k == ind: mask_z_interval.append(v)'''
+        mask_z_interval = self._slice_seq.z_index_list
         mesh_output_path = os.path.join(self.output_path, "04.mesh")
         if not os.path.exists(mesh_output_path): os.makedirs(mesh_output_path, exist_ok=True)
         points_3d = get_mask_3d_points(crop_tissue_list,
@@ -186,22 +229,26 @@ class Stereo3DwithTissueMatrix(object):
         color_h5ad = os.path.join(self.output_path, '06.color')
         transform_h5ad = os.path.join(self.output_path, '05.transform')
         organ = os.path.join(self.output_path, '07.organ')
+
+        z_interval = self._slice_seq.z_interval
+        z_index_list = self._slice_seq.z_index_list
+
         for i in [color_h5ad, transform_h5ad, organ]: 
             if not os.path.exists(i): os.makedirs(i)
 
         batch_cluster(matrix_dir=align_matrix, save_dir=transform_h5ad)
         batch_spatial_leiden(h5ad_path=transform_h5ad, save_path=transform_h5ad)
         h5ad_list = [os.path.join(transform_h5ad, i) for i in self._h5ad_list()]
-        categories = uniform_cluster_color(h5ad_list, color_h5ad)
+        categories = uniform_cluster_color(h5ad_list, color_h5ad, z_index_list = z_index_list)
         glog.info('Cluster total categories are {}'.format(categories))
         color_h5ad_list = [os.path.join(color_h5ad, i) for i in self._h5ad_list()]
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
-                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None)
+                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'))
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
             except Exception as e:
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
@@ -213,6 +260,7 @@ class Stereo3DwithTissueMatrix(object):
             record_sheet: str,
             output_path: str,
             overwrite: int = 1,
+            registration: int = 1,
             align_method: str = '',
     ):
         """
@@ -234,6 +282,7 @@ class Stereo3DwithTissueMatrix(object):
         self.output_path = output_path
 
         self._overwrite_flag = True if overwrite else False
+        self._registration_flag = True if registration == 1 else False
 
         if align_method == 'paste':
             glog.info("----------01.----------")
@@ -275,6 +324,7 @@ def main(args, para):
                            record_sheet=args.record_sheet,
                            output_path=args.output_path,
                            overwrite = args.overwriter,
+                           registration= args.registration,
                            align_method = args.align)
     glog.info('Welcome to cooperate again')
 
@@ -296,6 +346,8 @@ if __name__ == '__main__':
                         help="Input tissue mask path.")
     parser.add_argument("-overwriter", "--overwriter", action="store", dest="overwriter", type=int, required=False,
                         default = 0, help="Overwrite old files, 0 is False, 1 is True. ")
+    parser.add_argument("-registration", "--registration", action="store", dest="registration", type=int, required=False,
+                        default = 1, help="Algorithm registration, 0 is False, 1 is True. ")
     parser.add_argument("-align", "--align", action = "store", dest = "align", type = str, required = False,
                         default = '', help = " 'paste' | '' ")
     parser.set_defaults(func=main)
