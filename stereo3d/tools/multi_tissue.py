@@ -104,10 +104,10 @@ class MultiTissue(object):
             _ = file_name.split('.')
             if '.gef' in f:
                 chn, lab, le, suf = _
-                shutil.copy(f, os.path.join(self.savep, 'gem', '{}_{}.gef'.format(chn, lab)))
+                shutil.copy(f, os.path.join(self.savep, 'matrix', '{}_{}.gef'.format(chn, lab)))
             elif '.gem' in f:
                 chn, la, bn, lab, suf = _
-                shutil.copy(f, os.path.join(self.savep, 'gem', '{}_{}.gem'.format(chn, lab)))
+                shutil.copy(f, os.path.join(self.savep, 'matrix', '{}_{}.gem'.format(chn, lab)))
             else:
                 chn, la, lab, mk, suf = _
                 shutil.copy(f, os.path.join(self.savep, 'mask', '{}_{}.tif'.format(chn, lab)))
@@ -120,7 +120,7 @@ class MultiTissue(object):
 def main(args, para):
     chip_no = os.path.basename(args.matrix_path).split('.')[0]
     os.makedirs(os.path.join(args.output_path, 'tmp'), exist_ok=True)
-    os.makedirs(os.path.join(args.output_path, 'gem'), exist_ok=True)
+    os.makedirs(os.path.join(args.output_path, 'matrix'), exist_ok=True)
     os.makedirs(os.path.join(args.output_path, 'mask'), exist_ok=True)
     mt = MultiTissue()
     mt.chip_no = chip_no
@@ -150,3 +150,4 @@ if __name__ == '__main__':
     (para, args) = parser.parse_known_args()
     print(para, args)
     para.func(para, args)
+
