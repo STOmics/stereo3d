@@ -8,6 +8,7 @@ import open3d as o3d
 from tqdm import tqdm
 from glob import glob
 
+o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error)
 
 # ---------------points 3d create--------------- #
 def contours_in(contours, shape):

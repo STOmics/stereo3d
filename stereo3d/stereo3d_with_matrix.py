@@ -27,6 +27,7 @@ class Stereo3DwithTissueMatrix(object):
 
         self._overwrite_flag: bool = True
         self._registration_flag: bool = True
+        self._random = None
         self._slice_seq = SliceSequence()
 
         # sn_name = ss.get_chip_seq()
@@ -285,7 +286,7 @@ class Stereo3DwithTissueMatrix(object):
 
         self._overwrite_flag = True if overwrite else False
         self._registration_flag = True if registration == 1 else False
-        self._random = 200 if random == 1 else self._random = None
+        self._random = 200 if random == 1 else None
 
         if align_method == 'paste':
             glog.info("----------02.Align by paste----------")
