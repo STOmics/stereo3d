@@ -69,13 +69,13 @@ class Stereo3DwithTissueMatrix(object):
         crop_mask_path = os.path.join(self.output_path, "02.register", "00.crop_mask")
         if not os.path.exists(crop_mask_path): os.makedirs(crop_mask_path)
         if self._overwrite_flag:
-            cut_mask(self._tissue, crop_mask_path)
+            cut_mask(self._tissue, crop_mask_path, self._registration_flag)
             glog.info('Crop mask is overwrite the files.')
         else:
             files_num = len(os.listdir(crop_mask_path)) - 1
 
             if files_num != len(self._tissue):
-                cut_mask(self._tissue, crop_mask_path)
+                cut_mask(self._tissue, crop_mask_path, self._registration_flag)
                 glog.info('Crop mask updated.')
             else:
                 glog.info("Files all exist, skip crop mask.")
@@ -118,7 +118,7 @@ class Stereo3DwithTissueMatrix(object):
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
                 adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random=self._random)
             except Exception as e:
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
@@ -210,7 +210,8 @@ class Stereo3DwithTissueMatrix(object):
                         z_interval=z_interval,
                         mesh_scale=1,
                         output_path=mesh_output_path,
-                        show_mesh=False)
+                        show_mesh=False,
+                        random=self._random)
         
     def _h5ad_list(self, ):
         lst = list()
@@ -248,7 +249,7 @@ class Stereo3DwithTissueMatrix(object):
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
                 adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None, z_index_list = z_index_list)
             try:
-                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
+                organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random=self._random)
             except Exception as e:
                 glog.error(f"Organ {c}: {e}")
         glog.info('Completed insert organ')
@@ -261,6 +262,7 @@ class Stereo3DwithTissueMatrix(object):
             output_path: str,
             overwrite: int = 1,
             registration: int = 1,
+            random : int = 1,
             align_method: str = '',
     ):
         """
@@ -283,6 +285,7 @@ class Stereo3DwithTissueMatrix(object):
 
         self._overwrite_flag = True if overwrite else False
         self._registration_flag = True if registration == 1 else False
+        self._random = 200 if random == 1 else self._random = None
 
         if align_method == 'paste':
             glog.info("----------02.Align by paste----------")
@@ -323,6 +326,7 @@ def main(args, para):
                            output_path=args.output_path,
                            overwrite = args.overwriter,
                            registration= args.registration,
+                           random = args.random,
                            align_method = args.align)
     glog.info('Welcome to cooperate again')
 
@@ -348,6 +352,8 @@ if __name__ == '__main__':
                         default = 1, help="Algorithm registration, 0 is False, 1 is True. ")
     parser.add_argument("-align", "--align", action = "store", dest = "align", type = str, required = False,
                         default = '', help = " 'paste' | '' ")
+    parser.add_argument("-random", "--random", action="store", dest="random", type=int, required=False,
+                        default = 1, help="random points move, 0 is False, 1 is True. ")
     parser.set_defaults(func=main)
 
     (para, args) = parser.parse_known_args()

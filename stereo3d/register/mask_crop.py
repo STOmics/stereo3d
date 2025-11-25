@@ -37,14 +37,18 @@ def f_cut_image_by_contours(image, padding=4000):
     return image[y:y + h, x:x + w], [x, y, w, h]
 
 
-def cut_mask(mask_list, output_path, padding_size = 4000):
+def cut_mask(mask_list, output_path, registration_flag,padding_size = 4000):
     glog.info("Cut image and h5ad file.")
     mask_cut_info = dict()
     os.makedirs(os.path.join(output_path), exist_ok=True)
     for mask_file in tqdm(mask_list, desc="Mask crop", ncols=100):
         name = os.path.basename(mask_file)
         chip = os.path.splitext(name)[0]
-        cut_image, rect = f_cut_image_by_contours(mask_file, padding_size)
+        if registration_flag == False:
+            cut_image = cv.imread(mask_file, -1)
+            rect = [0,0,cut_image.shape[1],cut_image.shape[0]]
+        else:
+            cut_image, rect = f_cut_image_by_contours(mask_file, padding_size)
         tif.imwrite(os.path.join(output_path, name), cut_image)
         mask_cut_info[chip] = rect
 

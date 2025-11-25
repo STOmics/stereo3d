@@ -146,7 +146,8 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
 def organ_mesh(
         organ_path: str,
         mesh_output_path: str,
-        z_interval=0.008
+        z_interval=0.008,
+        random = 200,
 ):
     from stereo3d.mesh.create_mesh_3d import points_3d_to_mesh
 
@@ -173,7 +174,8 @@ def organ_mesh(
                       mesh_scale=1,
                       output_path=output_path,
                       show_mesh=False,
-                      name=name.replace('.obj', ''))
+                      name=name.replace('.obj', ''),
+                      random=random)
 
 
 if __name__ == '__main__':

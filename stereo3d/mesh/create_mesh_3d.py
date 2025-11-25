@@ -333,7 +333,8 @@ def points_3d_to_mesh(points_3d,
                       down_size=None,
                       output_path=None,
                       show_mesh=False,
-                      name=None):
+                      name=None,
+                      random=200):
     """
     Args:
         points_3d: xyz
@@ -347,7 +348,7 @@ def points_3d_to_mesh(points_3d,
 
     """
     # points_3d = _delete_outlier(points_3d)
-    pcd = _points_3d_read(points_3d, random=100, z_interval=z_interval)
+    pcd = _points_3d_read(points_3d, random=random, z_interval=z_interval)
     # pcd.estimate_normals()
     if show_mesh:
         o3d.visualization.draw_geometries([pcd], mesh_show_back_face=True)

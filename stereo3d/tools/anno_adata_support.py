@@ -74,7 +74,7 @@ def adata_insert_organ(matrix_path, output_path,
         organ_path_ = read_and_parse_by_celltype(
             outdir=organ_path, spatial_regis='spatial_mm', anno=cluster_key, celltype=c,
             adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
-        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval)
+        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random = None)
     glog.info('Completed insert organ')
 
 
