@@ -147,7 +147,7 @@ def organ_mesh(
         organ_path: str,
         mesh_output_path: str,
         z_interval=0.008,
-        random = 200,
+        random = None,
 ):
     from stereo3d.mesh.create_mesh_3d import points_3d_to_mesh
 
@@ -168,6 +168,9 @@ def organ_mesh(
     if len(np.unique(points_3d[:, 2])) == 1:
         glog.warning(f'\n The z_interval of the points is only 1 dims.')
         return
+    
+    if random:
+        random = 200
 
     points_3d_to_mesh(points_3d,
                       z_interval=z_interval,

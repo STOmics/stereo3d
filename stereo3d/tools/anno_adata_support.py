@@ -45,7 +45,8 @@ def adata_insert_organ(matrix_path, output_path,
                        cut_json_path: [str, None] = None,
                        align_json_path: [str, None] = None,
                        cluster_key: str = "leiden",
-                       record_sheet: str = ''):
+                       record_sheet: str = '',  
+                       random: [int, None] = None):
     df = pd.read_excel(record_sheet, sheet_name="SliceSequence")
     z_index_list = df["Z_index"].tolist()
     meta = pd.read_excel(record_sheet, sheet_name="Meta")
@@ -74,7 +75,7 @@ def adata_insert_organ(matrix_path, output_path,
         organ_path_ = read_and_parse_by_celltype(
             outdir=organ_path, spatial_regis='spatial_mm', anno=cluster_key, celltype=c,
             adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
-        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random = None)
+        organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random = random)
     glog.info('Completed insert organ')
 
 
@@ -86,7 +87,8 @@ def main(args, para):
                        cut_json_path=args.cut_json_path,
                        align_json_path=args.align_json_path,
                        cluster_key=args.cluster_key,
-                       record_sheet = args.record_sheet)
+                       record_sheet = args.record_sheet,
+                       random = args.random)
     glog.info('Finished: custom clustering 3D result in 12.adata_organ')
 
 
@@ -107,6 +109,8 @@ if __name__ == "__main__":
                         help="the save cluster label ")
     parser.add_argument("-rs", "--record_sheet", action="store", dest="record_sheet", type=str, required=True,
                         help="record sheet path ")
+    parser.add_argument("-r", "--random", action="store", dest="random", type=int, default=1,
+                        help="randomly move points when creating mesh")
     parser.set_defaults(func=main)
     (para, args) = parser.parse_known_args()
     para.func(para, args)
