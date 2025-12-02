@@ -23,7 +23,9 @@ class Stereo3DwithTissueMatrix(object):
         self.record_sheet: str = None
         self.output_path: str = None
         self._matrix: list = None
+        self._matrix_z: list = None
         self._tissue: list = None
+        self._tissue_z: list = None
 
         self._overwrite_flag: bool = True
         self._registration_flag: bool = True
@@ -53,14 +55,27 @@ class Stereo3DwithTissueMatrix(object):
 
         self._matrix = list()
         self._tissue = list()
-        for chip_name in self._slice_seq.get_chip_seq():
+        self._matrix_z = list()
+        self._tissue_z = list()
+        z_index_dict = self._slice_seq.z_index_dict
+        for chip in z_index_dict.keys():
+            tissue_p = os.path.join(self.tissue_mask, '{}.tif'.format(chip))
+            matrix_p = self.get_matrix_path(chip)
+            if os.path.exists(tissue_p): # fromat tissue mask list and tissue z_index list from record sheet
+                self._tissue.append(tissue_p)
+                self._tissue_z.append(z_index_dict[chip])
+            if os.path.exists(matrix_p): # fromat matrix list and matrix z_index list from record sheet
+                self._matrix.append(matrix_p)
+                self._matrix_z.append(z_index_dict[chip])
+
+        '''for chip_name in self._slice_seq.get_chip_seq():
             tissue_p = os.path.join(self.tissue_mask, '{}.tif'.format(chip_name))
             if os.path.exists(tissue_p):
                 self._tissue.append(tissue_p)
 
             p = self.get_matrix_path(chip_name)
             if p != '':
-                self._matrix.append(p)
+                self._matrix.append(p)'''
 
         # assert len(self._tissue) == len(self._matrix), 'List length of matrix != List length of mask'
         glog.info('A total of {} slices were identified'.format(len(self._tissue)))
@@ -97,7 +112,12 @@ class Stereo3DwithTissueMatrix(object):
 
         batch_cluster(matrix_dir=gene_file_path, save_dir=color_h5ad)
         batch_spatial_leiden(h5ad_path=color_h5ad, save_path=color_h5ad)
-        h5ad_list = [os.path.join(color_h5ad, i) for i in os.listdir(color_h5ad) if i.endswith('.h5ad')]
+        h5ad_list = list()
+        for matrix_file in self._matrix:
+            matrix_name = os.path.basename(matrix_file).split('.')[0]
+            h5ad_path = os.path.join(color_h5ad, '{}.h5ad'.format(matrix_name))
+            h5ad_list.append(h5ad_path)
+        #h5ad_list = [os.path.join(color_h5ad, i) for i in os.listdir(color_h5ad) if i.endswith('.h5ad')]
         categories = uniform_cluster_color(h5ad_list, color_h5ad)
         glog.info('Cluster total categories are {}'.format(categories))
 
@@ -112,12 +132,11 @@ class Stereo3DwithTissueMatrix(object):
             output_path=color_h5ad,
         )
         z_interval = self._slice_seq.z_interval
-        z_index_list = self._slice_seq.z_index_list
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
-                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = z_index_list)
+                adata_list=None, h5ad_list=h5ad_list, sc_xyz=None, z_index_list = self._matrix_z)
             try:
                 organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random=self._random)
             except Exception as e:
@@ -193,11 +212,10 @@ class Stereo3DwithTissueMatrix(object):
             ind = os.path.basename(mask).split('.')[0]
             for k, v in z_interval_dict.items():
                 if k == ind: mask_z_interval.append(v)'''
-        mask_z_interval = self._slice_seq.z_index_list
         mesh_output_path = os.path.join(self.output_path, "04.mesh")
         if not os.path.exists(mesh_output_path): os.makedirs(mesh_output_path, exist_ok=True)
         points_3d = get_mask_3d_points(crop_tissue_list,
-                                    mask_z_interval,
+                                    self._tissue_z,
                                     z_interval=z_interval,
                                     pixel4mm=pixel4mm,
                                     output_path=mesh_output_path
@@ -233,22 +251,35 @@ class Stereo3DwithTissueMatrix(object):
         organ = os.path.join(self.output_path, '07.organ')
 
         z_interval = self._slice_seq.z_interval
-        z_index_list = self._slice_seq.z_index_list
+        #z_index_list = self._slice_seq.z_index_list
 
         for i in [color_h5ad, transform_h5ad, organ]: 
             if not os.path.exists(i): os.makedirs(i)
 
         batch_cluster(matrix_dir=align_matrix, save_dir=transform_h5ad)
         batch_spatial_leiden(h5ad_path=transform_h5ad, save_path=transform_h5ad)
+
+        h5ad_list = list()
+        color_h5ad_list = list()
+        for matrix_file in self._matrix:
+            matrix_name = os.path.basename(matrix_file).split('.')[0]
+            h5ad_path = os.path.join(color_h5ad, '{}.h5ad'.format(matrix_name))
+            color_h5ad_path = os.path.join(color_h5ad, '{}.h5ad'.format(matrix_name))
+            if os.path.exists(h5ad_path):
+                h5ad_list.append(h5ad_path)
+                color_h5ad_list.append(color_h5ad_path)
+
+         
         h5ad_list = [os.path.join(transform_h5ad, i) for i in self._h5ad_list()]
-        categories = uniform_cluster_color(h5ad_list, color_h5ad, z_index_list = z_index_list)
+        print(h5ad_list)
+        categories = uniform_cluster_color(h5ad_list, color_h5ad, z_index_list = self._matrix_z)
         glog.info('Cluster total categories are {}'.format(categories))
         color_h5ad_list = [os.path.join(color_h5ad, i) for i in self._h5ad_list()]
 
         for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
             organ_path_ = read_and_parse_by_celltype(
                 outdir=organ, spatial_regis='spatial_mm', anno='leiden', celltype = c,
-                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None, z_index_list = z_index_list)
+                adata_list=None, h5ad_list=color_h5ad_list, sc_xyz=None, z_index_list = self._matrix_z)
             try:
                 organ_mesh(organ_path_, organ_path_.replace('.txt', '.obj'), z_interval = z_interval, random=self._random)
             except Exception as e:
