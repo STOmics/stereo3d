@@ -477,7 +477,7 @@ def _affine_image(image_src, matrix, shape):
     return _src
 
 
-def manual_align(images_list, output_path, manual_path, crop_tissue_list):
+def manual_align(images_list, output_path, manual_path, crop_tissue_list, registration=True):
     """
 
     Args:
@@ -535,15 +535,16 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
             os.remove(img_path)
             images_list[ind] = os.path.join(os.path.dirname(img_path), _name + ".tif")
             #break
-            _image_list = crop_tissue_list[ind + 1:]
-            _image_list.insert(0, images_list[ind])
-            _info_dict = _align_slices_similar(_image_list, output_path)
-            for k, v in _info_dict.items():
-                if _name in k:
-                    continue
-                if isinstance(v['mat'], (np.matrix, np.ndarray)):
-                    v['mat'] = v['mat'].tolist()
-                info_dict[k]['mat'] = v['mat']
+            if registration == True:
+                _image_list = crop_tissue_list[ind + 1:]
+                _image_list.insert(0, images_list[ind])
+                _info_dict = _align_slices_similar(_image_list, output_path)
+                for k, v in _info_dict.items():
+                    if _name in k:
+                        continue
+                    if isinstance(v['mat'], (np.matrix, np.ndarray)):
+                        v['mat'] = v['mat'].tolist()
+                    info_dict[k]['mat'] = v['mat']
 
     #os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
     json_write(info_dict, output_path)

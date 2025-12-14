@@ -26,7 +26,12 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
     
     coord = np.array([x, y])
     coord = coord.transpose(1, 0)
-    if mat and len(mat) > 3:
+    
+    if offset: # offset from crop json
+        coord[:, 0] = coord[:, 0] - offset[0]
+        coord[:, 1] = coord[:, 1] - offset[1]
+
+    if mat and len(mat) > 3: # registration from align json
         mat = mat[2:]
     if mat:
         coord = np.concatenate([coord, np.ones((coord.shape[0], 1))], axis=1)
@@ -41,7 +46,7 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
                                 np.expand_dims(y_arr, axis=1)], axis=1)
 
 
-    if map_x is not None and map_y is not None:
+    if map_x is not None and map_y is not None: # elastic deformation from align json
         x_temp = coord[:, 0].astype(int)
         y_temp = coord[:, 1].astype(int)
         
@@ -51,9 +56,6 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
         
         coord = np.column_stack([new_x, new_y])
     
-    if offset:
-        coord[:, 0] = coord[:, 0] - offset[0]
-        coord[:, 1] = coord[:, 1] - offset[1]
 
 
     return coord[:, 0], coord[:, 1]
