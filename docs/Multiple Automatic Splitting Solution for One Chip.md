@@ -2,7 +2,7 @@
 
 In spatial transcriptomics experiments, when multiple tissue sections from the same embedding block are placed on a spatial chip or multiple tissue sections are attached to a single chip, the Stereo3D intelligent assistant tool `multi_tissue.py` can be used to split the multi-tissue samples on the chip into independent single tissues for subsequent import into the Stereo3D analysis pipeline for 3D reconstruction.
 
-### 一、Tool Path: tools/multi_tissue.py
+### 1、Tool Path: tools/multi_tissue.py
 
 The purpose is to automatically split one-chip-multiple-tissue data. After splitting, the preceding and subsequent relationships need to be manually modified in the record sheet.
 
@@ -15,7 +15,7 @@ Process: Download the code, configure the environment, enter the tools directory
 3. In Windows systems, tmp temporary files need to be manually deleted by the user. In Linux systems, tmp temporary files are deleted by the program by default.
 4. In Windows systems, after running, there may be this output: "'gzip' is not recognized as an internal or external command, operable program or batch file." This does not affect the results.
 
-### 二、multi_tissue.py Running Example
+### 2、multi_tissue.py Running Example
 
 ```
 git clone https://github.com/STOmics/stereo3d.git # Clone the repository named stereo3d
@@ -24,18 +24,18 @@ source activate stereo3d # Activate the conda virtual environment named stereo3d
 cd stereo3d # Enter the stereo3d directory
 pip install -r requirements.txt # Install project dependencies according to the requirements.txt file
 cd stereo3d/tools # Enter the tools subdirectory under the stereo3d directory
-python multi_tissue.py --mask_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.tif --matrix_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.gem.gz --output D:\Desktop\stereo3d_1tom\output\FP200000449TL_C3  # Run the multi-tissue analysis script, --mask_path specifies the mask path, --matrix_path specifies the matrix data path, -output specifies the output path
+python multi_tissue.py --mask_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.tif --matrix_path D:\Desktop\stereo3d_1tom\FP200000449TL_C3.gem.gz --output D:\Desktop\stereo3d_1tom\output\FP200000449TL_C3  # Run the multi-tissue analysis script,  --matrix_path specifies the matrix data path,--mask_path specifies the mask path, -output specifies the output path
 ```
 
 
 
 Input Introduction:
 
-| Parameter | Description            | Type | Required |
-| :-------- | :--------------------- | :--- | :------- |
-| matrix    | Input matrix path      | str  | Yes      |
-| mask      | Input tissue mask path | str  | Yes      |
-| output    | Output path            | str  | Yes      |
+| Parameter   | Description            | Type | Required |
+| :---------- | :--------------------- | :--- | :------- |
+| matrix_path | Input matrix path      | str  | Yes      |
+| mask_path   | Input tissue mask path | str  | Yes      |
+| output      | Output path            | str  | Yes      |
 
 Output Results Introduction:
 
@@ -49,7 +49,7 @@ ID Representation File Example:
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/pLdn557L101zwno8/img/a21099aa-b490-4641-8da4-acf8e4e1e4eb.png)
 
-### 三、Reconnecting to stereo3d
+### 3、Reconnecting to stereo3d
 
 After running multi_tissue.py and automatically splitting the data, it needs to be reconnected to the stereo3d pipeline to obtain stereo3d results.
 

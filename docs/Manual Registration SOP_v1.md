@@ -1,6 +1,6 @@
 # **Manual Registration SOP_v1**
 
-## 1 **Basic Introduction**
+## 1.**Basic Introduction**
 
 ● Application Scenario: When the Stereo3D automated registration results do not meet requirements, perform manual registration operations on the automatically registered files, then reconnect to the Stereo3D pipeline to output new results.
 
@@ -8,7 +8,7 @@
 
 ● Note: When viewing with Fiji software and importing into TrakEM2, the images are displayed sorted by filename (according to the default alphanumeric order). Therefore, it is recommended to name the files according to the order in the slice record sheet (e.g., image1.tif, image2.tif) to ensure the correct preceding and subsequent relationship.
 
-## 2 **Tool Description and Preparation**
+## 2.**Tool Description and Preparation**
 
 Since the image and the matrix have a one-to-one correspondence, and the matrix transformation reuses the relationship from image registration, it is sufficient to check whether the image registration is correct.
 
@@ -18,7 +18,7 @@ The output results in the 02.register folder include 00.crop_mask (cropped tissu
 | :--- | :----------- | :----------------------------------------------------------- | :----------------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
 | Fiji | ImageJ 1.54f | Fiji is a free, open-source image processing software based on ImageJ, supporting fluorescence microscopy, 3D reconstruction, cell counting, etc. | https://imagej.net/software/fiji/downloads | ● View registration results ● Manually modify registration results | https://bgipan.genomics.cn/#/link/OvDFhNolvDYrxCO8l8V0 Access Code: RdpK |
 
-## 3 **Operation Steps**
+## 3.**Operation Steps**
 
 ### 3.1 **Create Project**
 
@@ -146,7 +146,7 @@ After the file is automatically saved, find the file in the save path and rename
 
 <img src="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/2M9qP5jz0WawgO01/img/cfd70e34-585d-4585-b63a-5180b3676c37.png" alt="image.png" style="zoom:80%;" />
 
-## 4 **Reconnect to Stereo3D Pipeline**
+## 4.**Reconnect to Stereo3D Pipeline**
 
 After manually registering the images, you need to reconnect to the Stereo3D pipeline to generate new results.
 

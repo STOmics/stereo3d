@@ -1,12 +1,12 @@
 # **Multiple Manual Splitting Solution for One Chip**
 
-### 一. **Background Introduction**
+### 1. **Background Introduction**
 
 Due to the small size of tissues, multiple tissue sections or multiple tissues from one embedding block are placed on a spatial chip, resulting in multiple tissues on one chip. For such data, it needs to be split into individual tissues before being input into the stereo3d pipeline for reconstruction.
 
 The overall process involves using stereomap to perform manual lasso selection on the matrix gef for individual tissues, outputting Geojson, which is then fed into the saw reanalyze lasso pipeline to obtain multiple individual tissue matrix files (gem.gz) and corresponding mask.tif files.
 
-### 二. **Tools**
+### 2. **Tools**
 
 | Name          | Introduction                                                 | Download Link                                                |
 | :------------ | :----------------------------------------------------------- | :----------------------------------------------------------- |
@@ -20,7 +20,7 @@ The overall process involves using stereomap to perform manual lasso selection o
 3. The record sheet also needs corresponding modifications; the preceding and subsequent relationships must be manually adjusted by the user.
 4. The naming in the ssDNA_ChipNo column of the record sheet must be consistent with the mask file naming.
 
-### 三. **StereoMap Operation Steps**
+### 3. **StereoMap Operation Steps**
 
 Use stereomap to perform manual lasso selection on the matrix gef for individual tissues and output Geojson.
 
@@ -59,7 +59,7 @@ Figure 5 Custom Labels
 
 Figure 6 Save GeoJSON
 
-### 四. **SAW Reanalyze Lasso Pipeline**
+### 4. **SAW Reanalyze Lasso Pipeline**
 
 Feed the GeoJSON into the saw reanalyze lasso pipeline to obtain multiple individual tissue matrix files (gem.gz) and corresponding mask.tif files. For detailed introduction, please refer to (saw user manual -- data reanalysis -- [Matrix Lasso Module](https://www.stomics.tech/service/saw_8_1/docs/shi-yong-jiao-cheng/secondary-analysis.html#矩阵套索))
 
@@ -126,7 +126,7 @@ A running example is shown below:
 
 
 
-### 五. **Reconnecting to stereo3d**
+### 5. **Reconnecting to stereo3d**
 
 1. Manually modify file naming (to comply with stereo3d input format)
 2. Manually modify directory structure (to comply with stereo3d input format)
