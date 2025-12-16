@@ -37,9 +37,14 @@ def parse_xml2mat(xml_path, name):
         xml_dict = xml.parse(s)
     file_sequence = 1
     shape_p = 0
-    if name in xml_dict['trakem2']['t2_layer_set']['t2_layer'][0]['@t2_patch']['title']:
+    for i in range(len(xml_dict['trakem2']['t2_layer_set']['t2_layer'])):
+        if name in xml_dict['trakem2']['t2_layer_set']['t2_layer'][i]['@t2_patch']['title']:
+            file_sequence = i
+            shape_p = i
+            break
+    '''if name in xml_dict['trakem2']['t2_layer_set']['t2_layer'][0]['@t2_patch']['title']:
         file_sequence = 0
-        shape_p = 1
+        shape_p = 1'''
     
     width = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['width'])
     height = float(xml_dict['trakem2']['t2_layer_set']['t2_layer'][shape_p]['@t2_patch']['height'])
@@ -90,12 +95,17 @@ def parse_xml2mat(xml_path, name):
                 mat[1, 0] = -mat[1, 0]'''
                 mat_sequence.append(mat)
             if transform['class'] == 'mpicbg.trakem2.transform.MovingLeastSquaresTransform2':
-                mat = np.eye(3)
+                #mat = np.eye(3)
                 mls_params = parse_mls_data(transform['data'])
 
-                src_pts = np.float32(mls_params['src_points'])
+                '''src_pts = np.float32(mls_params['src_points'])
                 dst_pts = np.float32(mls_params['dst_points'])
-                if len(src_pts) == 3:
+                p = np.array(src_pts).tolist()
+                q = np.array(dst_pts).tolist()'''
+                src_pts = mls_params['src_points']
+                dst_pts = mls_params['dst_points']
+                mat = [src_pts] +[dst_pts]
+                '''if len(src_pts) == 3:
                     M = cv.getAffineTransform(src_pts, dst_pts)
                 elif len(src_pts) == 4:
                     M = cv.getPerspectiveTransform(src_pts, dst_pts)
@@ -105,13 +115,14 @@ def parse_xml2mat(xml_path, name):
                     mat_sequence.append(M)
                 else:
                     mat[:2, :] = M
-                    '''mat[0, 1] = -mat[0, 1]
-                    mat[1, 0] = -mat[1, 0]'''
-                    mat_sequence.append(mat)
+                    #mat[0, 1] = -mat[0, 1]
+                    #mat[1, 0] = -mat[1, 0]'''
+                mat_sequence.append(mat)
 
     return mat_sequence, [height, width]      
 
 
 if __name__ == '__main__':
-    mat, shape = parse_xml2mat(r"e:\03.users\wangaoli\data\raw_data\Drosophila_test\test_result\02.register\02.manual\A02183A1.xml","A02183A1")
+    mat, shape = parse_xml2mat(r"D:\stereo3d_data\demo\Drosophila_melanogaster_demo\test_manual\02.register\02.manual\A02183A5.xml","A02183A5")
     print(mat)
+    print(shape)

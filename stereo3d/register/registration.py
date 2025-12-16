@@ -483,7 +483,7 @@ def _affine_image(image_src, matrix, shape):
     return _src
 
 
-def manual_align(images_list, output_path, manual_path, crop_tissue_list):
+def manual_align(images_list, output_path, manual_path, crop_tissue_list, registration=True):
     """
 
     Args:
@@ -497,7 +497,7 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
 
     align_json = os.path.join(output_path, "align_info.json")
     info_dict = json.load(open(align_json, 'r'))
-    info_dict_or = info_dict.copy()
+    info_dict_or = info_dict.copy() # original info dict
 
     for ind, img_path in enumerate(images_list):
         name = os.path.basename(img_path).split(".")[0]
@@ -516,17 +516,23 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
                     name_list.append(k)
                     register_mat = v['mat']
                     break
-            if len(manual_mat) == 1:
+            if len(manual_mat) == 1: # rigid registration
                 combine_manual_mat = manual_mat[0]
-            else:
-                combine_manual_mat = np.eye(3)
-                for mat in reversed(manual_mat[1:]):
-                    combine_manual_mat = mat @ combine_manual_mat
-            if register_mat is None:
-                _register_mat = combine_manual_mat
-                info_dict[name_list[0]]['shape'] = shape
-            else:
-                _register_mat = combine_manual_mat @ np.array(register_mat)
+                if register_mat is None:
+                    _register_mat = combine_manual_mat
+                    info_dict[name_list[0]]['shape'] = shape
+                else:
+                    _register_mat = combine_manual_mat @ np.array(register_mat)
+                    _register_mat = _register_mat.tolist()
+            else: #elastic registration
+                _register_mat = manual_mat[-1]
+                if register_mat is None:
+                    info_dict[name_list[0]]['shape'] = shape
+                else:
+                    #_register_mat = combine_manual_mat @ np.array(register_mat)
+                    if isinstance(register_mat, (np.matrix, np.ndarray)):
+                        register_mat = register_mat.tolist()
+                    _register_mat = _register_mat + [*register_mat]
             #_register_mat = np.array(register_mat)
 
             info_dict[name_list[0]]['mat'] = _register_mat
@@ -535,13 +541,16 @@ def manual_align(images_list, output_path, manual_path, crop_tissue_list):
             os.remove(img_path)
             images_list[ind] = os.path.join(os.path.dirname(img_path), _name + ".tif")
             #break
-            _image_list = crop_tissue_list[ind + 1:]
-            _image_list.insert(0, images_list[ind])
-            _info_dict = _align_slices_similar(_image_list, output_path)
-            for k, v in _info_dict.items():
-                if _name in k:
-                    continue
-                info_dict[k]['mat'] = v['mat']
+            if registration == True:
+                _image_list = crop_tissue_list[ind + 1:]
+                _image_list.insert(0, images_list[ind])
+                _info_dict = _align_slices_similar(_image_list, output_path)
+                for k, v in _info_dict.items():
+                    if _name in k:
+                        continue
+                    if isinstance(v['mat'], (np.matrix, np.ndarray)):
+                        v['mat'] = v['mat'].tolist()
+                    info_dict[k]['mat'] = v['mat']
 
     #os.rename(img_path, os.path.join(os.path.dirname(img_path), _name + ".tif"))
     json_write(info_dict, output_path)

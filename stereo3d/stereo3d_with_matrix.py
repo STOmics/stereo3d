@@ -152,7 +152,7 @@ class Stereo3DwithTissueMatrix(object):
                     glog.info("Contains manual files for recalculation.")
                     align_path_list = [os.path.join(align_output_path, i) for i in os.listdir(align_output_path)]
                     manual_path = os.path.join(self.output_path, "02.register", "02.manual")
-                    manual_align(align_path_list, align_output_path, manual_path, crop_tissue_list)
+                    manual_align(align_path_list, align_output_path, manual_path, crop_tissue_list, self._registration_flag)
 
                 glog.info("Files all exist, skip align mask.")
 
