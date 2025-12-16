@@ -3,4 +3,6 @@
 __pycache__/
 
 **/__pycache__
-stereo3d/manual/new_manual.py
+
+.dat
+
