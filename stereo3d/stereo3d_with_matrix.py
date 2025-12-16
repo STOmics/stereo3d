@@ -276,7 +276,6 @@ class Stereo3DwithTissueMatrix(object):
 
          
         h5ad_list = [os.path.join(transform_h5ad, i) for i in self._h5ad_list()]
-        print(h5ad_list)
         categories = uniform_cluster_color(h5ad_list, color_h5ad, z_index_list = self._matrix_z)
         glog.info('Cluster total categories are {}'.format(categories))
         color_h5ad_list = [os.path.join(color_h5ad, i) for i in self._h5ad_list()]
