@@ -2,7 +2,6 @@ import os
 import json
 import shutil
 import gzip
-from turtle import width
 
 import numpy as np
 import pandas as pd
