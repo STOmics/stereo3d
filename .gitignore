@@ -4,5 +4,5 @@ __pycache__/
 
 **/__pycache__
 
-.dat
+*.dat
 

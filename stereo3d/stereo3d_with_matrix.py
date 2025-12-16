@@ -65,6 +65,11 @@ class Stereo3DwithTissueMatrix(object):
                 self._tissue.append(tissue_p)
                 self._tissue_z.append(z_index_dict[chip])
             if os.path.exists(matrix_p): # fromat matrix list and matrix z_index list from record sheet
+                if not os.path.exists(tissue_p):
+                    matrix_name = os.path.basename(matrix_p)
+                    tissue_name = os.path.basename(tissue_p)
+                    glog.warning('Matrix file {} exists, but tissue mask file {} missing.'.format(matrix_name, tissue_name))
+                    return 0
                 self._matrix.append(matrix_p)
                 self._matrix_z.append(z_index_dict[chip])
 
@@ -326,6 +331,8 @@ class Stereo3DwithTissueMatrix(object):
         else:
             glog.info("----------01.Extract data----------")
             flag = self._input_check()
+            if flag == 0:
+                sys.exit(1)
             glog.info('Completed verification of input parameters.')
 
             glog.info("----------02.Crop Mask----------")
