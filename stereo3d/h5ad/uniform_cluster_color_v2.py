@@ -146,7 +146,8 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
 def organ_mesh(
         organ_path: str,
         mesh_output_path: str,
-        z_interval=0.008
+        z_interval=0.008,
+        random = None,
 ):
     from stereo3d.mesh.create_mesh_3d import points_3d_to_mesh
 
@@ -167,13 +168,17 @@ def organ_mesh(
     if len(np.unique(points_3d[:, 2])) == 1:
         glog.warning(f'\n The z_interval of the points is only 1 dims.')
         return
+    
+    if random:
+        random = 200
 
     points_3d_to_mesh(points_3d,
                       z_interval=z_interval,
                       mesh_scale=1,
                       output_path=output_path,
                       show_mesh=False,
-                      name=name.replace('.obj', ''))
+                      name=name.replace('.obj', ''),
+                      random=random)
 
 
 if __name__ == '__main__':

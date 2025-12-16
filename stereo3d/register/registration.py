@@ -117,11 +117,7 @@ class RigidTrans:
 
             if best_flip:
                 trans_mat[0, :] = [-1, 0, _src_image.shape[1] - 1]
-            if self.registration == False: 
-                print("Warning: Registration is turned off.")  
-                trans_mat = np.array([[1., 0., 0], [0., 1., 0], [0, 0, 1.]])
-                best_score = 1
-            elif self.registration == True and fine_mat is not None:
+            if self.registration == True and fine_mat is not None:
                 trans_mat = down_scale_mat_inv @ fine_mat @ best_coarse_mat @ \
                             trans_mat @ down_scale_mat @ scale_mat
 
@@ -377,9 +373,19 @@ def _align_slices_similar(images_list, output_path, registration=True):
             )
             continue
 
-        new_image, info_dict = _align_slices_and_record( #edit
-            src_image=image, dst_image=up_image, scale=1, info_dict=info_dict, registration=registration
-        )
+        if registration == False:
+            new_image = cv.imread(image, 0)
+            name = os.path.basename(image)
+            info_dict[name] = dict()
+            trans_mat = np.array([[1., 0., 0], [0., 1., 0], [0, 0, 1.]])
+            best_score = 1
+            info_dict[name]['mat'] = trans_mat
+            info_dict[name]['shape'] = list(new_image.shape) if isinstance(new_image, np.ndarray) else None
+            info_dict[name]['score'] = best_score
+        else:
+            new_image, info_dict = _align_slices_and_record( #edit
+                src_image=image, dst_image=up_image, scale=1, info_dict=info_dict, registration=registration
+            )
 
         tif.imwrite(os.path.join(output_path, name), new_image)
         up_image = os.path.join(output_path, name)

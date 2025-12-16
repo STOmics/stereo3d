@@ -57,7 +57,7 @@ stereo3d/stereo3d_with_matrix.py        # Main script for 3D reconstruction from
 | **Output File** | **Description**                                              |
 | :-------------- | :----------------------------------------------------------- |
 | 02.register     | Registered tissue mask images after alignment                |
-| 03.gem          | Spatial expression matrix after registration                 |
+| 03.matrix          | Spatial expression matrix after registration                 |
 | 04.mesh         | 3D mesh model reconstructed from clustered point clouds      |
 | 05.transform    | Annotated H5AD file containing spatial coordinates and cell metadata |
 | 06.color        | H5AD file with unified color mapping for visualization       |
