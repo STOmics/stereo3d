@@ -1,6 +1,6 @@
-# **Annotation/Clustering Breakpoint Integration and Display**
+# **Annotation Clustering Breakpoint Integration and Display**
 
-### 1.**Use Case: Annotation/Clustering Breakpoint Integration**
+### **1. Use Case: Annotation Clustering Breakpoint Integration**
 
 Use Case: Users have annotated/clustered h5ad data (h5ad has unified cell types or cluster labels, scanpy format) that needs to be integrated into the stereo3d analysis pipeline.
 
@@ -68,6 +68,7 @@ If the input h5ad files do not have unified coordinates, use this example:
 
 ```
 cd stereo3d/tools
+
 python anno_adata_support.py -m D:\RD_Data\3D\test\ann_file -o D:\RD_Data\3D\output_aj -aj D:\RD_Data\3D\demo_output_20250416\02.register\01.align_mask\align_info.json -cj D:\RD_Data\3D\demo_output_20250416\02.register\00.crop_mask\mask_cut_info.json
 ```
 
@@ -75,7 +76,9 @@ If the input h5ad files already have unified coordinates, use this example:
 
 ```
 cd stereo3d/tools
-python anno_adata_support.py -m D:\RD_Data\3D\demo_output_20250416\06.color -o D:\RD_Data\3D\output_aj
+python anno_adata_support.py \
+-m D:\RD_Data\3D\demo_output_20250416\06.color \
+-o D:\RD_Data\3D\output_aj
 ```
 
 3. Running interface and output results
@@ -88,7 +91,7 @@ Output results interface display
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/J9LnW6jwaBM7VlvD/img/a0f04c93-5943-4525-8382-134fe5ed8594.png)
 
-### 2.**Use Case: Annotation/Clustering Effect Display**
+### **2. Use Case: Annotation/Clustering Effect Display**
 
 Prerequisite: The h5ad files have unified coordinates and unified cell types or cluster labels
 

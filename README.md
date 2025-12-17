@@ -42,23 +42,24 @@ stereo3d/stereo3d_with_matrix.py        # Main script for 3D reconstruction from
 
 **Input Parameter Introduction**
 
-| **Input**    | **Description**                                              | **Required** | **Data Type** | **Remarks**                                                  |
-| :----------- | :----------------------------------------------------------- | :----------- | :------------ | :----------------------------------------------------------- |
-| matrix_path  | Standard format gene expression matrix, supports raw.gef/gef/gem.gz | Required     | string        | /                                                            |
-| tissue_mask  | Tissue mask image, tif format                                | Required     | string        | / |
+| **Input**    | **Description**      | **Required** | **Data Type** | **Remarks**      |
+| :----------- | :-------- | :----------- | :------------ | :-------- |
+| matrix_path  | Folder containing gene expression matrices. Supports formats: `raw.gef`, `.gef`, `.gem.gz` | Required     | string        | /      |
+| tissue_mask  | Folder containing tissue cut masks. Only `.tif` format  supported.    | Required     | string         | / |
 | record_sheet | Obtained from the experimental side, records slice positions, correspondence between preceding and subsequent slices | Required     | string        | We have provided you with an [example](docs/E-ST20220923002_slice_records_20221110.xlsx). Click to view [details](docs/extra.md). |
 | output       | Result save path                                             | Required     | string        | /                                                            |
-| registration | The process performs registration by default. If the input data is already registered and no additional algorithmic registration is needed, use parameter `--registration 0` | Optional     | int           | /                                                            |
-| overwriter   | If the automated registration result of Stereo3D does not meet requirements, perform manual registration operations on the automatically registered files, then feed back into the Stereo3D process to output new results, use parameter `--overwriter 0` | Optional     | int           | Example see [4. Reconnect to Stereo3D Pipeline](https://github.com/STOmics/stereo3d/blob/dev/docs/Manual%20Registration%20SOP_v1.md) |
+| registration | The pipeline performs registration by default. If the input data is already registered, use parameter `--registration 0` | Optional     | int           | /                                                            |
+| overwriter   | To perform manual registration operations on the automatically registered files, use parameter `--overwriter 0` | Optional     | int           | Example see [Manual Registration SOP](\docs\Manual Registration SOP.md) |
 | align        | If only the matrix is input, matrix reconstruction results can be generated, outputting only the registered H5AD and organ mesh, use parameter `--align paste` | Optional     | string        | Example see [3.2.3.2](https://github.com/STOmics/stereo3d/blob/dev/docs/%E2%80%8B3D%20Reconstruction%20Solution%20Operational%20Manual%E2%80%8B.md) |
+
 
 **Standard Output File Introduction**
 
-| **Output File** | **Description**                                              |
-| :-------------- | :----------------------------------------------------------- |
+| **Output File** | **Description**        |
+| :-------------- | :----------- |
 | 02.register     | Registered tissue mask images after alignment                |
-| 03.matrix          | Spatial expression matrix after registration                 |
-| 04.mesh         | 3D mesh model reconstructed from clustered point clouds      |
+| 03.matrix          | Registered spatial expression matrix       |
+| 04.mesh         | 3D mesh reconstructed from clustered point clouds      |
 | 05.transform    | Annotated H5AD file containing spatial coordinates and cell metadata |
 | 06.color        | H5AD file with unified color mapping for visualization       |
 | 07.organ        | Segmented organ-specific mesh models                         |

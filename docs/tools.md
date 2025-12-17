@@ -170,8 +170,8 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     ```
 
 ##### Input Parameters 
-  |  Name   | Description                                                                                                                                                                                                                                                                        | Importance | Dtype  |
-  |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|--------|
+  |  Name   | Description          | Importance | Dtype  |
+  |-------------|-------------------|------------|--------|
   | input  | File or directory path. <br>File path: all slices are in one file; <br>Directory path: all slices are in one directory (the file name must contain numbers to reflect their relationship)                                                                                          | Required   | string |
   | output  | Result save path                                                                                                                                                                                                                                                                   | Required   | int    |
   | z_step  | The distance between slices can be adjusted according to the rendering effect in the spateo-viewer                                                                                                                                                                                 | Optional   | string |
