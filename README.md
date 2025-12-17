@@ -48,10 +48,10 @@ stereo3d/stereo3d_with_matrix.py        # Main script for 3D reconstruction from
 | tissue_mask  | Folder containing tissue cut masks. Only `.tif` format  supported.    | Required     | string         | / |
 | record_sheet | Obtained from the experimental side, records slice positions, correspondence between preceding and subsequent slices | Required     | string        | We have provided you with an [example](docs/E-ST20220923002_slice_records_20221110.xlsx). Click to view [details](docs/extra.md). |
 | output       | Result save path                                             | Required     | string        | /                                                            |
-| registration | The pipeline performs registration by default. If the input data is already registered, use parameter `--registration 0` | Optional     | int           | /                                                            |
+| registration | The pipeline performs registration by default. If the input data is already registered, use parameter `--registration 0` | Optional     | int           | /        |
 | overwriter   | To perform manual registration operations on the automatically registered files, use parameter `--overwriter 0` | Optional     | int           | Example see [Manual Registration SOP](\docs\Manual Registration SOP.md) |
 | align        | If only the matrix is input, matrix reconstruction results can be generated, outputting only the registered H5AD and organ mesh, use parameter `--align paste` | Optional     | string        | Example see [3.2.3.2](https://github.com/STOmics/stereo3d/blob/dev/docs/%E2%80%8B3D%20Reconstruction%20Solution%20Operational%20Manual%E2%80%8B.md) |
-
+| random |Enable random perturbation of point cloud coordinates. Reduces co-planarity for fuller 3D mesh generation. | Optional     | int  | Default `1`, set `--random 0` to disable it      |
 
 **Standard Output File Introduction**
 
