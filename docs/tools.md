@@ -60,13 +60,16 @@ D:\00.user\stereo3D\Drosophila_melanogaster_demo\output\02.register\00.crop_mask
 
 ##### Input Parameters 
 
-|  Name   | Description                  | Importance | Dtype  |
-|  ----  |------------------------------|------------|--------|
-| matrix_path  | File path: Cluster annotations are provided as H5AD files (AnnData objects) with spatial coordinates stored under the `obsm["spatial"]` key | Required   | string |
-| output_path  | The output path      | Required   | string |
-| align_json_path  | Alignment parameters file: In base pipline, it can be found in `02.register\01.align_mask\align_info.json` if it not provide, coordinates remain unmodified | Optional   | string |
-| cut_json_path  | Tissue mask parameters file: In base pipline, it can be found in `02.register\00.crop_mask\mask_cut_info.json` if it not provide, coordinates remain unmodified.  | Optional   | string    |
-| cluster_key  |   Cluster label: default = "leiden" , The cluster label name , save in anndata file `.obs` | Optional   | string |
+|  Parameter | Short   | Description      | Importance | Dtype  |
+|  ----  |------------|------------------|------------|--------|
+| matrix_path  | -m | File path: Cluster annotations are provided as H5AD files (AnnData objects) with spatial coordinates stored under the `obsm["spatial"]` key | Required   | string |
+| output_path  |-o| The output path      | Required   | string |
+| align_json_path |-aj | Alignment parameters file: In base pipline, it can be found in `02.register\01.align_mask\align_info.json` if it not provide, coordinates remain unmodified | Optional   | string |
+| cut_json_path  | -cj|Tissue mask parameters file: In base pipline, it can be found in `02.register\00.crop_mask\mask_cut_info.json` if it not provide, coordinates remain unmodified.  | Optional   | string    |
+| cluster_key  | -ck|  Cluster label: default = "leiden" , The cluster label name , save in anndata file `.obs` | Optional   | string |
+| record_sheet  | -rs|   Slice Workflow Sheet | Required   | string |
+| random  | -r|   Enable random perturbation of point cloud coordinates. Reduces co-planarity for fuller 3D mesh generation. Default = 1 | Optional     | int  |  
+
 
 ##### Output file
 
@@ -117,17 +120,17 @@ python multi_tissue.py \
 ```
 
 ##### Input Parameters 
-| Name        | Description                 | Importance | Dtype  |
+| Parameter        | Description                 | Importance | Dtype  |
 |-------------|-----------------------------|------------|--------|
-| matrix      | The path of matrix file     | Required   | string |
-| mask        | The path of tissue cut file | Required   | string |
+| matrix_path  | The path of matrix folder     | Required   | string |
+| mask_path  | The path of tissue cut folder | Required   | string |
 | output      | The output path             | Required   | string |
 
 ##### Output file
 |    File Name    |    Description     |
 |-----------------|--------------------|
-|  gem         | matrix files of all tissues |
-|  mask     | tissuecut files of all tissues |
+|  gem         | matrix files of all slices |
+|  mask     | tissuecut files of all siices |
 |  sn.gef    | Convert gem to gef (only applicable in gem scenarios) |
 |  sn.tif         | all-tissue ID representation files |
 |  sn_YYYYMMDD.lasso.geojson   |  Label file compatible with stereoMap |
@@ -170,7 +173,7 @@ Here, we use the spateo framework to build a simple process to input multiple ad
     ```
 
 ##### Input Parameters 
-  |  Name   | Description          | Importance | Dtype  |
+  |  Parameter   | Description          | Importance | Dtype  |
   |-------------|-------------------|------------|--------|
   | input  | File or directory path. <br>File path: all slices are in one file; <br>Directory path: all slices are in one directory (the file name must contain numbers to reflect their relationship)                                                                                          | Required   | string |
   | output  | Result save path                                                                                                                                                                                                                                                                   | Required   | int    |
