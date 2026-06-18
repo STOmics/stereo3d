@@ -16,12 +16,18 @@ sys.path.append(curr_path)
 
 from stereo3d.gem.transform import trans_matrix_by_json
 from stereo3d.h5ad.uniform_cluster_color_v2 import read_and_parse_by_celltype, organ_mesh
+from stereo3d.file.slice import SliceSequence
 
 
 def create_3D_coord(h5ad_list, out_path, cluster_key="leiden", z_index_list=[]):
     adatas = []
     for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad', ncols=100):
         adata = sc.read_h5ad(file)
+        if cluster_key not in adata.obs.columns:
+            adata.obs[cluster_key] = '0'
+            adata.obs[cluster_key] = adata.obs[cluster_key].astype('category')
+            if 'leiden_colors' not in adata.uns:
+                adata.uns['leiden_colors'] = np.array(['#1f77b4'])
         adatas.append(adata)
 
     categories = []
@@ -47,11 +53,11 @@ def adata_insert_organ(matrix_path, output_path,
                        cluster_key: str = "leiden",
                        record_sheet: str = '',  
                        random: [int, None] = None):
-    df = pd.read_excel(record_sheet, sheet_name="SliceSequence")
-    z_index_list = df["Z_index"].tolist()
-    meta = pd.read_excel(record_sheet, sheet_name="Meta")
-    dct = meta.to_dict(orient='list')
-    z_interval = float(dct['Z-interval'][0].replace('mm', ''))
+    
+    # Use SliceSequence to parse record_sheet and manage slices by Slice_ID order
+    ss = SliceSequence()
+    ss.from_xlsx(file_path=record_sheet)
+    z_interval = ss.z_interval
     trans_adata_path = os.path.join(output_path, "11.tans_adata")
     os.makedirs(trans_adata_path, exist_ok=True)
     organ_path = os.path.join(output_path, "12.adata_organ")
@@ -69,8 +75,27 @@ def adata_insert_organ(matrix_path, output_path,
                 target_path = os.path.join(trans_adata_path, filename)
                 shutil.copy2(source_path, target_path)
 
-    h5ad_list = [os.path.join(trans_adata_path, i) for i in os.listdir(trans_adata_path) if i.endswith(".h5ad")]
-    categories = create_3D_coord(h5ad_list, trans_adata_path, cluster_key, z_index_list =z_index_list )
+    # Match h5ad files by SSDNA_ChipNo in Slice_ID order from SliceSequence
+    h5ad_list = []
+    z_index_list = []
+    trans_files = os.listdir(trans_adata_path)
+    for slice_id in sorted(ss.sequence.keys()):
+        slc = ss.sequence[slice_id]
+        if not slc.has_stereo_chip():
+            continue
+        chip_no = slc.ssdna.chip_no
+        z_idx = slc.z_index
+        # Match h5ad file names based on chip_no
+        matched = [f for f in trans_files if f.endswith('.h5ad') and chip_no in f]
+        if matched:
+            h5ad_list.append(os.path.join(trans_adata_path, matched[0]))
+            z_index_list.append(z_idx)
+        else:
+            glog.warning(f"No h5ad found for chip_no: {chip_no} (Slice_ID={slice_id})")
+
+    glog.info(f"Matched {len(h5ad_list)} h5ad files with record sheet")
+
+    categories = create_3D_coord(h5ad_list, trans_adata_path, cluster_key, z_index_list=z_index_list)
     for c in tqdm.tqdm(categories, desc='Organ', ncols=100):
         organ_path_ = read_and_parse_by_celltype(
             outdir=organ_path, spatial_regis='spatial_mm', anno=cluster_key, celltype=c,
