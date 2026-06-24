@@ -111,106 +111,109 @@ def read_cellbin_from_gef(gef_file, gene_name_gef=None):
     if cell.shape[0] == 0:
         return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
 
-    gene_name_field = "geneID" if "geneID" in gene.dtype.names else "geneName"
-    gene_names, mapped_gene_count = _cellbin_gene_names(gene, gene_name_field, gene_name_gef)
+    # Cellbin GEF stores expression against integer geneID in cellExp/geneExp.
+    # In the cellbin-index workflow, the integer geneID is treated as the
+    # cross-slice gene key, so we deliberately avoid tissue-GEF gene-name mapping.
+    gene_names = np.array([f"gene_{i}" for i in range(gene.shape[0])], dtype=object)
+    mapped_gene_count = gene.shape[0]
 
-    if gene_exp is not None and "cellCount" in gene.dtype.names:
-        gene_cell_count = gene["cellCount"].astype(np.int64)
-        total_nnz = int(gene_cell_count.sum())
-        if total_nnz != int(gene_exp.shape[0]):
+    if cell_exp is not None:
+        cell_gene_count = cell["geneCount"].astype(np.int64)
+        total_nnz = int(cell_gene_count.sum())
+        if total_nnz != int(cell_exp.shape[0]):
             raise ValueError(
-                f"cellbin nnz mismatch: sum(gene.cellCount)={total_nnz}, geneExp={gene_exp.shape[0]}"
+                f"cellbin nnz mismatch: sum(cell.geneCount)={total_nnz}, cellExp={cell_exp.shape[0]}"
             )
 
-        offsets = gene["offset"].astype(np.int64) if "offset" in gene.dtype.names else np.cumsum(
-            np.r_[0, gene_cell_count[:-1]]
+        offsets = cell["offset"].astype(np.int64) if "offset" in cell.dtype.names else np.cumsum(
+            np.r_[0, cell_gene_count[:-1]]
         )
-        expected_offsets = np.cumsum(np.r_[0, gene_cell_count[:-1]])
+        expected_offsets = np.cumsum(np.r_[0, cell_gene_count[:-1]])
         if np.array_equal(offsets, expected_offsets):
-            exp = gene_exp
-            gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64), gene_cell_count)
+            exp = cell_exp
+            cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64), cell_gene_count)
         else:
-            nonzero_gene = gene_cell_count > 0
+            nonzero_cell = cell_gene_count > 0
             exp_index = np.concatenate([
                 np.arange(offset, offset + count, dtype=np.int64)
-                for offset, count in zip(offsets, gene_cell_count)
+                for offset, count in zip(offsets, cell_gene_count)
                 if count > 0
             ])
-            exp = gene_exp[exp_index]
-            gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64)[nonzero_gene], gene_cell_count[nonzero_gene])
+            exp = cell_exp[exp_index]
+            cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64)[nonzero_cell], cell_gene_count[nonzero_cell])
+
+        gene_idx = exp["geneID"].astype(np.int64)
 
         if mapped_gene_count < gene.shape[0]:
             keep = gene_idx < mapped_gene_count
             exp = exp[keep]
             gene_idx = gene_idx[keep]
+            cell_row = cell_row[keep]
 
         if exp.shape[0] == 0:
             return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
-
-        cell_ref = exp["cellID"].astype(np.int64)
-        if cell_ref.size and cell_ref.max() < cell.shape[0]:
-            cell_row = cell_ref
-            cell_id = cell["id"].astype(np.int64)[cell_row]
-        else:
-            cell_index = pd.Index(cell["id"].astype(np.int64))
-            cell_row = cell_index.get_indexer(cell_ref)
-            if (cell_row < 0).any():
-                raise ValueError("cellbin geneExp references unknown cell ids")
-            cell_id = cell_ref
 
         return pd.DataFrame({
             "geneID": gene_names[gene_idx],
             "x": cell["x"].astype(np.int64)[cell_row],
             "y": cell["y"].astype(np.int64)[cell_row],
             "MIDCount": exp["count"].astype(np.int64),
-            "cellID": cell_id,
+            "cellID": cell["id"].astype(np.int64)[cell_row],
         })
 
-    if cell_exp is None:
+    if gene_exp is None or "cellCount" not in gene.dtype.names:
         return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
 
-    cell_gene_count = cell["geneCount"].astype(np.int64)
-    total_nnz = int(cell_gene_count.sum())
-    if total_nnz != int(cell_exp.shape[0]):
+    gene_cell_count = gene["cellCount"].astype(np.int64)
+    total_nnz = int(gene_cell_count.sum())
+    if total_nnz != int(gene_exp.shape[0]):
         raise ValueError(
-            f"cellbin nnz mismatch: sum(cell.geneCount)={total_nnz}, cellExp={cell_exp.shape[0]}"
+            f"cellbin nnz mismatch: sum(gene.cellCount)={total_nnz}, geneExp={gene_exp.shape[0]}"
         )
 
-    offsets = cell["offset"].astype(np.int64) if "offset" in cell.dtype.names else np.cumsum(
-        np.r_[0, cell_gene_count[:-1]]
+    offsets = gene["offset"].astype(np.int64) if "offset" in gene.dtype.names else np.cumsum(
+        np.r_[0, gene_cell_count[:-1]]
     )
-    expected_offsets = np.cumsum(np.r_[0, cell_gene_count[:-1]])
+    expected_offsets = np.cumsum(np.r_[0, gene_cell_count[:-1]])
     if np.array_equal(offsets, expected_offsets):
-        exp = cell_exp
-        cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64), cell_gene_count)
+        exp = gene_exp
+        gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64), gene_cell_count)
     else:
-        nonzero_cell = cell_gene_count > 0
+        nonzero_gene = gene_cell_count > 0
         exp_index = np.concatenate([
             np.arange(offset, offset + count, dtype=np.int64)
-            for offset, count in zip(offsets, cell_gene_count)
+            for offset, count in zip(offsets, gene_cell_count)
             if count > 0
         ])
-        exp = cell_exp[exp_index]
-        cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64)[nonzero_cell], cell_gene_count[nonzero_cell])
+        exp = gene_exp[exp_index]
+        gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64)[nonzero_gene], gene_cell_count[nonzero_gene])
 
-    gene_idx = exp["geneID"].astype(np.int64)
     if mapped_gene_count < gene.shape[0]:
         keep = gene_idx < mapped_gene_count
         exp = exp[keep]
         gene_idx = gene_idx[keep]
-        cell_row = cell_row[keep]
 
     if exp.shape[0] == 0:
         return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
 
-    df = pd.DataFrame({
+    cell_ref = exp["cellID"].astype(np.int64)
+    if cell_ref.size and cell_ref.max() < cell.shape[0]:
+        cell_row = cell_ref
+        cell_id = cell["id"].astype(np.int64)[cell_row]
+    else:
+        cell_index = pd.Index(cell["id"].astype(np.int64))
+        cell_row = cell_index.get_indexer(cell_ref)
+        if (cell_row < 0).any():
+            raise ValueError("cellbin geneExp references unknown cell ids")
+        cell_id = cell_ref
+
+    return pd.DataFrame({
         "geneID": gene_names[gene_idx],
         "x": cell["x"].astype(np.int64)[cell_row],
         "y": cell["y"].astype(np.int64)[cell_row],
         "MIDCount": exp["count"].astype(np.int64),
-        "cellID": cell["id"].astype(np.int64)[cell_row],
+        "cellID": cell_id,
     })
-    return df
 
 
 def read_gene_names_from_gef(gef_file):
