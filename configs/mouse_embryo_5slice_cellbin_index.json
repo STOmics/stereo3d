@@ -1,0 +1,12 @@
+{
+  "project_name": "mouse_embryo_5slice_cellbin_index",
+  "data_root": "D:/00.user/wangaoli/data/mouse_embryo_5slice",
+  "cellbin_matrix_path": "D:/00.user/wangaoli/data/mouse_embryo_5slice/02.cellbingef",
+  "tissue_mask": "D:/00.user/wangaoli/data/mouse_embryo_5slice/00.mask",
+  "record_sheet": "D:/00.user/wangaoli/data/mouse_embryo_5slice/mouse_embryo_5.xlsx",
+  "output_path": "D:/00.user/wangaoli/data/mouse_embryo_5slice/stereo3d_output_cellbin_index",
+  "cellbin_matrix_file_mode": "cellbin_suffix",
+  "registration": 1,
+  "overwriter": 1,
+  "numba_cache_dir": "D:/00.user/wangaoli/data/mouse_embryo_5slice/.numba_cache"
+}

@@ -22,16 +22,16 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
     Returns:
         coord: x, y
     """
-    
     coord = np.array([x, y])
     coord = coord.transpose(1, 0)
-    
-    if offset: # offset from crop json
+
+    if offset:
         coord[:, 0] = coord[:, 0] - offset[0]
         coord[:, 1] = coord[:, 1] - offset[1]
 
-    if mat and len(mat) > 3: # registration from align json
+    if mat and len(mat) > 3:
         mat = mat[2:]
+
     if mat:
         coord = np.concatenate([coord, np.ones((coord.shape[0], 1))], axis=1)
         cor_trans_val = np.transpose(coord)
@@ -44,18 +44,10 @@ def trans_points(x, y, offset=None, mat=None, map_x=None, map_y=None):
         coord = np.concatenate([np.expand_dims(x_arr, axis=1),
                                 np.expand_dims(y_arr, axis=1)], axis=1)
 
-
-    if map_x is not None and map_y is not None: # elastic deformation from align json
-        x_temp = coord[:, 0].astype(int)
-        y_temp = coord[:, 1].astype(int)
-        
-        new_x = map_x[y_temp, x_temp]
-        new_y = map_y[y_temp, x_temp]
-        
-        
-        coord = np.column_stack([new_x, new_y])
-    
-
+    if map_x is not None and map_y is not None:
+        x_temp = np.clip(coord[:, 0].astype(int), 0, map_x.shape[1] - 1)
+        y_temp = np.clip(coord[:, 1].astype(int), 0, map_y.shape[0] - 1)
+        coord = np.column_stack([map_x[y_temp, x_temp], map_y[y_temp, x_temp]])
 
     return coord[:, 0], coord[:, 1]
 
@@ -105,6 +97,155 @@ def gem_read(
     return df
 
 
+def read_cellbin_from_gef(gef_file, gene_name_gef=None):
+    with h5py.File(gef_file, "r") as h:
+        if "cellBin" not in h:
+            raise ValueError(f"Not a cellbin gef: {gef_file}")
+
+        g = h["cellBin"]
+        cell = g["cell"][:]
+        gene = g["gene"][:]
+        gene_exp = g["geneExp"][:] if "geneExp" in g else None
+        cell_exp = g["cellExp"][:] if "cellExp" in g else None
+
+    if cell.shape[0] == 0:
+        return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
+
+    gene_name_field = "geneID" if "geneID" in gene.dtype.names else "geneName"
+    gene_names, mapped_gene_count = _cellbin_gene_names(gene, gene_name_field, gene_name_gef)
+
+    if gene_exp is not None and "cellCount" in gene.dtype.names:
+        gene_cell_count = gene["cellCount"].astype(np.int64)
+        total_nnz = int(gene_cell_count.sum())
+        if total_nnz != int(gene_exp.shape[0]):
+            raise ValueError(
+                f"cellbin nnz mismatch: sum(gene.cellCount)={total_nnz}, geneExp={gene_exp.shape[0]}"
+            )
+
+        offsets = gene["offset"].astype(np.int64) if "offset" in gene.dtype.names else np.cumsum(
+            np.r_[0, gene_cell_count[:-1]]
+        )
+        expected_offsets = np.cumsum(np.r_[0, gene_cell_count[:-1]])
+        if np.array_equal(offsets, expected_offsets):
+            exp = gene_exp
+            gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64), gene_cell_count)
+        else:
+            nonzero_gene = gene_cell_count > 0
+            exp_index = np.concatenate([
+                np.arange(offset, offset + count, dtype=np.int64)
+                for offset, count in zip(offsets, gene_cell_count)
+                if count > 0
+            ])
+            exp = gene_exp[exp_index]
+            gene_idx = np.repeat(np.arange(gene.shape[0], dtype=np.int64)[nonzero_gene], gene_cell_count[nonzero_gene])
+
+        if mapped_gene_count < gene.shape[0]:
+            keep = gene_idx < mapped_gene_count
+            exp = exp[keep]
+            gene_idx = gene_idx[keep]
+
+        if exp.shape[0] == 0:
+            return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
+
+        cell_ref = exp["cellID"].astype(np.int64)
+        if cell_ref.size and cell_ref.max() < cell.shape[0]:
+            cell_row = cell_ref
+            cell_id = cell["id"].astype(np.int64)[cell_row]
+        else:
+            cell_index = pd.Index(cell["id"].astype(np.int64))
+            cell_row = cell_index.get_indexer(cell_ref)
+            if (cell_row < 0).any():
+                raise ValueError("cellbin geneExp references unknown cell ids")
+            cell_id = cell_ref
+
+        return pd.DataFrame({
+            "geneID": gene_names[gene_idx],
+            "x": cell["x"].astype(np.int64)[cell_row],
+            "y": cell["y"].astype(np.int64)[cell_row],
+            "MIDCount": exp["count"].astype(np.int64),
+            "cellID": cell_id,
+        })
+
+    if cell_exp is None:
+        return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
+
+    cell_gene_count = cell["geneCount"].astype(np.int64)
+    total_nnz = int(cell_gene_count.sum())
+    if total_nnz != int(cell_exp.shape[0]):
+        raise ValueError(
+            f"cellbin nnz mismatch: sum(cell.geneCount)={total_nnz}, cellExp={cell_exp.shape[0]}"
+        )
+
+    offsets = cell["offset"].astype(np.int64) if "offset" in cell.dtype.names else np.cumsum(
+        np.r_[0, cell_gene_count[:-1]]
+    )
+    expected_offsets = np.cumsum(np.r_[0, cell_gene_count[:-1]])
+    if np.array_equal(offsets, expected_offsets):
+        exp = cell_exp
+        cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64), cell_gene_count)
+    else:
+        nonzero_cell = cell_gene_count > 0
+        exp_index = np.concatenate([
+            np.arange(offset, offset + count, dtype=np.int64)
+            for offset, count in zip(offsets, cell_gene_count)
+            if count > 0
+        ])
+        exp = cell_exp[exp_index]
+        cell_row = np.repeat(np.arange(cell.shape[0], dtype=np.int64)[nonzero_cell], cell_gene_count[nonzero_cell])
+
+    gene_idx = exp["geneID"].astype(np.int64)
+    if mapped_gene_count < gene.shape[0]:
+        keep = gene_idx < mapped_gene_count
+        exp = exp[keep]
+        gene_idx = gene_idx[keep]
+        cell_row = cell_row[keep]
+
+    if exp.shape[0] == 0:
+        return pd.DataFrame(columns=("geneID", "x", "y", "MIDCount", "cellID"))
+
+    df = pd.DataFrame({
+        "geneID": gene_names[gene_idx],
+        "x": cell["x"].astype(np.int64)[cell_row],
+        "y": cell["y"].astype(np.int64)[cell_row],
+        "MIDCount": exp["count"].astype(np.int64),
+        "cellID": cell["id"].astype(np.int64)[cell_row],
+    })
+    return df
+
+
+def read_gene_names_from_gef(gef_file):
+    with h5py.File(gef_file, "r") as h:
+        gene = h["geneExp"]["bin1"]["gene"][:]
+    gene_name_field = "geneID" if "geneID" in gene.dtype.names else "gene"
+    return gene[gene_name_field].astype("U")
+
+
+def _cellbin_gene_names(gene, gene_name_field, gene_name_gef=None):
+    gene_names = gene[gene_name_field].astype("U")
+    mapped_gene_count = gene_names.shape[0]
+    if gene_name_gef is not None and os.path.exists(gene_name_gef):
+        ref_names = read_gene_names_from_gef(gene_name_gef)
+        mapped_gene_count = min(ref_names.shape[0], gene_names.shape[0])
+        gene_names = gene_names[:mapped_gene_count]
+        if mapped_gene_count > 0:
+            gene_names[:mapped_gene_count] = ref_names[:mapped_gene_count]
+
+    safe_names = []
+    seen = set()
+    for i, raw_name in enumerate(gene_names):
+        name = str(raw_name).strip()
+        if not name or name in seen:
+            name = f"gene_{i}"
+        seen.add(name)
+        safe_names.append(name)
+    return np.array(safe_names, dtype=object), mapped_gene_count
+
+
+def is_cellbin_gef(gef_file):
+    with h5py.File(gef_file, "r") as h:
+        return "cellBin" in h
+
+
 def read_gem_from_gef(gef_file):
     h = h5py.File(gef_file, 'r')
     gene = h['geneExp']['bin1']['gene'][:]
@@ -123,30 +264,46 @@ def read_gem_from_gef(gef_file):
     return df
 
 
+def _deformation_map(mat, shape):
+    if mat and len(mat) > 3 and shape is not None:
+        return apply_affine_deformation(shape[0], shape[1], mat[0], mat[1], alpha=1.0)
+    return None, None
+
+
 def gef_trans(gef_file, offset, mat, shape, output_path):
     shutil.copy(gef_file, output_path)
-    map_x = None
-    map_y = None
-    if mat and len(mat) > 3:
-        p = mat[0]
-        q = mat[1]
-        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
+    map_x, map_y = _deformation_map(mat, shape)
     with h5py.File(output_path, 'r+') as h:
-        expression = h['geneExp']['bin1']['expression'][:]
-        new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat, map_x, map_y)
-        h['geneExp']['bin1']['expression']['x'] = new_x
-        h['geneExp']['bin1']['expression']['y'] = new_y
+        if 'cellBin' in h:
+            cell_ds = h['cellBin']['cell']
+            cell = cell_ds[:]
+            new_x, new_y = trans_points(cell['x'], cell['y'], offset, mat, map_x, map_y)
+            cell['x'] = np.int32(np.round(new_x))
+            cell['y'] = np.int32(np.round(new_y))
+            cell_ds[:] = cell
+
+            if 'cellBorder' in h['cellBin']:
+                border_ds = h['cellBin']['cellBorder']
+                border = border_ds[:]
+                flat_x = border[:, :, 0].reshape(-1)
+                flat_y = border[:, :, 1].reshape(-1)
+                border_x, border_y = trans_points(flat_x, flat_y, offset, mat, map_x, map_y)
+                border[:, :, 0] = np.int16(np.round(border_x).reshape(border.shape[0], border.shape[1]))
+                border[:, :, 1] = np.int16(np.round(border_y).reshape(border.shape[0], border.shape[1]))
+                border_ds[:] = border
+        else:
+            exp_ds = h['geneExp']['bin1']['expression']
+            expression = exp_ds[:]
+            new_x, new_y = trans_points(expression['x'], expression['y'], offset, mat, map_x, map_y)
+            expression['x'] = new_x
+            expression['y'] = new_y
+            exp_ds[:] = expression
 
 
 def anndata_trans(adata_file, offset, mat, shape, output_path):
     import scanpy as sc
     adata = sc.read_h5ad(adata_file)
-    map_x = None
-    map_y = None
-    if mat and len(mat) > 3:
-        p = mat[0]
-        q = mat[1]
-        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
+    map_x, map_y = _deformation_map(mat, shape)
     if "spatial" in adata.obsm.keys():
         x, y = adata.obsm["spatial"][:, 0], adata.obsm["spatial"][:, 1]
         new_x, new_y = trans_points(x, y, offset, mat, map_x, map_y)
@@ -164,13 +321,7 @@ def gem_trans(gem_file, offset, mat, shape, output_path):
         output_path: str - With file name
     """
     gem = gem_read(gem_file)
-    
-    map_x = None
-    map_y = None
-    if mat and len(mat) > 3:
-        p = mat[0]
-        q = mat[1]
-        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
+    map_x, map_y = _deformation_map(mat, shape)
 
     # gem['x'] = gem['x'] - min(gem['x'])
     # gem['y'] = gem['y'] - min(gem['y'])
@@ -219,8 +370,8 @@ def trans_matrix_by_json(gem_path, cut_json_path, align_json_path, output_path):
 
         if mask_cut is not None or align is not None:
             # mask_cut = None
-            mat = align['mat']
-            shape = align['shape']
+            mat = align['mat'] if align is not None else None
+            shape = align.get('shape') if align is not None else None
             if matrix_file.endswith('txt') or matrix_file.endswith('gem') or matrix_file.endswith('gem.gz'):
                 gem_trans(
                     matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.gem")

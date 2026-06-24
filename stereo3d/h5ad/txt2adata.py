@@ -4,7 +4,7 @@
 # @File    : txt2adata.py
 import os.path
 
-from stereo3d.gem.transform import read_gem_from_gef
+from stereo3d.gem.transform import is_cellbin_gef, read_cellbin_from_gef, read_gem_from_gef
 import os.path as osp
 import scipy.sparse as sp
 import pandas as pd
@@ -12,6 +12,14 @@ import tqdm
 from anndata import AnnData
 import scanpy as sc
 import glob
+
+
+def _pca_component_count(adata, requested=50):
+    return min(requested, max(1, min(adata.n_obs, adata.n_vars) - 1))
+
+
+def _neighbor_count(adata, requested=10):
+    return min(requested, max(1, adata.n_obs - 1))
 
 
 def data_encapsulation(data, bin_size, save: str = None):
@@ -36,6 +44,25 @@ def data_encapsulation(data, bin_size, save: str = None):
     return adata
 
 
+def cellbin_data_encapsulation(data, save: str = None):
+    vals = data["MIDCount"].to_numpy()
+    cell_list = data["cellID"].astype("category")
+    data["geneID"] = data["geneID"].fillna("Unknown")
+    gene_list = data["geneID"].astype("category")
+    row = cell_list.cat.codes.to_numpy()
+    col = gene_list.cat.codes.to_numpy()
+    coo = data.groupby("cellID").mean(numeric_only=True)[["x", "y"]]
+    obs = pd.DataFrame(index=(map(str, cell_list.cat.categories)))
+    var = pd.DataFrame(index=(map(str, gene_list.cat.categories)))
+    adata_x = sp.csr_matrix((vals, (row, col)), shape=(len(obs), len(var)))
+    adata = AnnData(adata_x, obs=obs, var=var)
+    adata.obsm['spatial'] = coo.to_numpy()
+    if isinstance(save, str):
+        adata.write_h5ad(save)
+
+    return adata
+
+
 def generate_binlabel(data, bin_size=50):
     assert isinstance(data, pd.DataFrame)
     columns = data.columns.values
@@ -49,7 +76,7 @@ def generate_binlabel(data, bin_size=50):
     data[f"bin{bin_size}_label"] = data.new_x.map(str) + "-" + data.new_y.map(str)
 
 
-def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
+def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20, gene_name_dir: str = None):
     gem_list = []
     for it in os.listdir(matrix_dir):
         if '.gef' in it or '.gem' in it:
@@ -60,16 +87,23 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
         if '.gem' in i:
             save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # Modify save_name as needed
             df = pd.read_csv(it, comment='#', sep='\t')  # Get the file to read according to lasso
+            generate_binlabel(df, bin_size=bin_size)  # Modify bin_size as needed
+            data_encapsulation(df, bin_size=bin_size, save=save_path)
         elif '.txt' in i:
             save_path = osp.join(save_dir, i.replace('.txt', '.h5ad'))  # Modify save_name as needed
             df = pd.read_csv(it, comment='#', sep='\t')  # Get the file to read according to lasso
+            generate_binlabel(df, bin_size=bin_size)  # Modify bin_size as needed
+            data_encapsulation(df, bin_size=bin_size, save=save_path)
         elif '.gef' in i:
             save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # Modify save_name as needed
-            df = read_gem_from_gef(it)  # Get the file to read according to lasso
-        else:
-            pass
-        generate_binlabel(df, bin_size=bin_size)  # Modify bin_size as needed
-        data_encapsulation(df, bin_size=bin_size, save=save_path)
+            if is_cellbin_gef(it):
+                gene_name_gef = osp.join(gene_name_dir, i) if gene_name_dir is not None else None
+                df = read_cellbin_from_gef(it, gene_name_gef=gene_name_gef)
+                cellbin_data_encapsulation(df, save=save_path)
+            else:
+                df = read_gem_from_gef(it)  # Get the file to read according to lasso
+                generate_binlabel(df, bin_size=bin_size)  # Modify bin_size as needed
+                data_encapsulation(df, bin_size=bin_size, save=save_path)
 
 
 def batch_spatial_leiden(h5ad_path: str, save_path: str, spot_size=15):
@@ -78,12 +112,21 @@ def batch_spatial_leiden(h5ad_path: str, save_path: str, spot_size=15):
     h5ad_list = glob.glob(osp.join(h5ad_path, "*.h5ad"))
     for it in tqdm.tqdm(h5ad_list, desc='Spatial Leiden', ncols=100):
         adata = sc.read_h5ad(it)
+        if min(adata.n_obs, adata.n_vars) < 2:
+            adata.obs["leiden"] = pd.Categorical(["0"] * adata.n_obs)
+            adata.uns["leiden_colors"] = ["#1f77b4"]
+            adata.write_h5ad(it)
+            continue
+
         sc.pp.normalize_total(adata, target_sum=1e4)
         sc.pp.log1p(adata)
-        sc.tl.pca(adata, svd_solver='arpack')
-        sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
+        n_comps = _pca_component_count(adata)
+        n_pcs = min(40, n_comps)
+        sc.tl.pca(adata, n_comps=n_comps, svd_solver='arpack')
+        sc.pp.neighbors(adata, n_neighbors=_neighbor_count(adata), n_pcs=n_pcs)
         sc.tl.umap(adata)
         sc.tl.leiden(adata)
+        adata.write_h5ad(it)
         with plt.rc_context():
             # sc.pl.umap(adata, color="leiden", show=False)
             sc.pl.spatial(adata, color="leiden", spot_size=spot_size, show=False)

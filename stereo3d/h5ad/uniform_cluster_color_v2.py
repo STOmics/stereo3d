@@ -7,6 +7,7 @@ import gc
 import anndata as ad
 import os
 import scanpy as sc
+import pandas as pd
 from matplotlib import pyplot as plt
 from anndata import AnnData
 import tqdm
@@ -16,6 +17,14 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
+
+
+def _pca_component_count(adata, requested=50):
+    return min(requested, max(1, min(adata.n_obs, adata.n_vars) - 1))
+
+
+def _neighbor_count(adata, requested=10):
+    return min(requested, max(1, adata.n_obs - 1))
 
 
 def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
@@ -28,18 +37,23 @@ def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
         adata = ad.read(file)
         adatas.append(adata)
         del adata
-    # adata_all = ad.concat(adatas)
-    adata_all = AnnData.concatenate(*adatas)
+    # Keep the union of genes across slices. The default inner join can collapse
+    # cellbin data to too few shared genes for PCA.
+    adata_all = AnnData.concatenate(*adatas, join='outer', fill_value=0)
     del adatas
 
     sc.pp.normalize_total(adata_all)
     sc.pp.log1p(adata_all)
-    sc.tl.pca(adata_all, svd_solver='arpack')
+    if min(adata_all.n_obs, adata_all.n_vars) < 2:
+        adata_all.obs['leiden'] = pd.Categorical(['0'] * adata_all.n_obs)
+    else:
+        n_comps = _pca_component_count(adata_all)
+        sc.tl.pca(adata_all, n_comps=n_comps, svd_solver='arpack')
 
-    sc.external.pp.harmony_integrate(adata_all, key='batch')
-    sc.pp.neighbors(adata_all, n_neighbors=10, use_rep='X_pca_harmony')
-    sc.tl.umap(adata_all)
-    sc.tl.leiden(adata_all)
+        sc.external.pp.harmony_integrate(adata_all, key='batch')
+        sc.pp.neighbors(adata_all, n_neighbors=_neighbor_count(adata_all), use_rep='X_pca_harmony')
+        sc.tl.umap(adata_all)
+        sc.tl.leiden(adata_all)
 
     for i, c in enumerate(tqdm.tqdm(adata_all.obs["batch"].cat.categories, desc='SpecifiedColor', ncols=100)):
         sub_data = adata_all[adata_all.obs["batch"] == c]
@@ -146,8 +160,7 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
 def organ_mesh(
         organ_path: str,
         mesh_output_path: str,
-        z_interval=0.008,
-        random = None,
+        z_interval=0.008
 ):
     from stereo3d.mesh.create_mesh_3d import points_3d_to_mesh
 
@@ -168,17 +181,13 @@ def organ_mesh(
     if len(np.unique(points_3d[:, 2])) == 1:
         glog.warning(f'\n The z_interval of the points is only 1 dims.')
         return
-    
-    if random:
-        random = 200
 
     points_3d_to_mesh(points_3d,
                       z_interval=z_interval,
                       mesh_scale=1,
                       output_path=output_path,
                       show_mesh=False,
-                      name=name.replace('.obj', ''),
-                      random=random)
+                      name=name.replace('.obj', ''))
 
 
 if __name__ == '__main__':
