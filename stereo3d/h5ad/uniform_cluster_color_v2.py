@@ -37,9 +37,9 @@ def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
         adata = ad.read(file)
         adatas.append(adata)
         del adata
-    # Keep the union of genes across slices. The default inner join can collapse
-    # cellbin data to too few shared genes for PCA.
-    adata_all = AnnData.concatenate(*adatas, join='outer', fill_value=0)
+    # Keep only genes shared by all slices to avoid slice-specific missingness
+    # dominating cross-slice clustering.
+    adata_all = AnnData.concatenate(*adatas, join='inner')
     del adatas
 
     sc.pp.normalize_total(adata_all)
