@@ -138,7 +138,7 @@ def run_cellbin_index(config: dict) -> None:
     ensure_dirs(crop_mask_dir, align_mask_dir)
 
     if should_run_dir(crop_mask_dir, len(mask_paths), overwrite, "*.tif"):
-        cut_mask(mask_paths, str(crop_mask_dir))
+        cut_mask(mask_paths, str(crop_mask_dir), registration)
     else:
         print(f"Skip existing crop masks: {crop_mask_dir}")
 
