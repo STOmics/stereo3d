@@ -97,8 +97,7 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20, gene_name_dir: st
         elif '.gef' in i:
             save_path = osp.join(save_dir, i.replace('.gef', '.h5ad'))  # Modify save_name as needed
             if is_cellbin_gef(it):
-                gene_name_gef = osp.join(gene_name_dir, i) if gene_name_dir is not None else None
-                df = read_cellbin_from_gef(it, gene_name_gef=gene_name_gef)
+                df = read_cellbin_from_gef(it)
                 cellbin_data_encapsulation(df, save=save_path)
             else:
                 df = read_gem_from_gef(it)  # Get the file to read according to lasso
