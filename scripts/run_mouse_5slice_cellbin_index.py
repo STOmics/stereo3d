@@ -30,6 +30,7 @@ def run_cellbin_index_leiden(
     slice_seq,
     output_path: Path,
     overwrite: bool,
+    run_organ: bool,
 ) -> None:
     from stereo3d.h5ad.txt2adata import batch_cluster, batch_spatial_leiden
     from stereo3d.h5ad.uniform_cluster_color_v2 import (
@@ -75,6 +76,10 @@ def run_cellbin_index_leiden(
         categories = sorted(map(str, adata.obs["leiden"].cat.categories), key=cluster_sort_key)
 
     print(f"Cellbin-index Leiden categories: {categories}")
+    if not run_organ:
+        print(f"Skip cellbin-index organ meshes because run_organ is false. Color output is ready: {color_h5ad}")
+        return
+
     color_h5ad_list = [str(color_h5ad / name) for name in expected_h5ad]
 
     existing_organs = list(organ.glob("*.obj"))
@@ -173,6 +178,7 @@ def run_cellbin_index(config: dict) -> None:
         slice_seq=slice_seq,
         output_path=output_path,
         overwrite=overwrite,
+        run_organ=bool(config.get("run_organ", 1)),
     )
 
     print("\nCellbin-index output check:")

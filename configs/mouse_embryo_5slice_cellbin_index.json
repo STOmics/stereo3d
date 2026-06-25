@@ -8,5 +8,6 @@
   "cellbin_matrix_file_mode": "cellbin_suffix",
   "registration": 1,
   "overwriter": 1,
+  "run_organ": 0,
   "numba_cache_dir": "D:/00.user/wangaoli/data/mouse_embryo_5slice/.numba_cache"
 }
