@@ -48,12 +48,9 @@ def run_cellbin_index_leiden(
 
     if should_run_dir(transform_h5ad, len(expected_h5ad), overwrite, "*.h5ad"):
         print(f"Create cellbin-index H5AD: {transform_h5ad}")
-        # Deliberately do not provide gene_name_dir. Cellbin integer geneID is
-        # kept as stable placeholder var names: gene_0, gene_1, ...
         batch_cluster(
             matrix_dir=str(cellbin_matrix_dir),
             save_dir=str(transform_h5ad),
-            gene_name_dir=None,
         )
     else:
         print(f"Skip existing cellbin-index H5AD: {transform_h5ad}")
@@ -112,7 +109,7 @@ def run_cellbin_index(config: dict) -> None:
     ensure_dirs(output_path)
 
     cellbin_matrix_path = ensure_path(config["cellbin_matrix_path"], "cellbin_matrix_path")
-    tissue_mask = ensure_path(config["tissue_mask"], "tissue_mask")
+    mask_path = ensure_path(config["mask_path"], "mask_path")
     record_sheet = ensure_path(config["record_sheet"], "record_sheet")
 
     prepared_cellbin = prepare_matrix_dir(
@@ -120,7 +117,7 @@ def run_cellbin_index(config: dict) -> None:
         output_path=output_path,
         matrix_file_mode=config.get("cellbin_matrix_file_mode", "cellbin_suffix"),
     )
-    validate_expected_files(prepared_cellbin, tissue_mask, record_sheet)
+    validate_expected_files(prepared_cellbin, mask_path, record_sheet)
 
     numba_cache_dir = Path(config.get("numba_cache_dir", output_path / ".numba_cache"))
     ensure_dirs(numba_cache_dir)
@@ -133,7 +130,7 @@ def run_cellbin_index(config: dict) -> None:
     slice_seq.from_xlsx(str(record_sheet))
     chip_seq = list(slice_seq.get_chip_seq())
 
-    mask_paths = get_ordered_mask_paths(tissue_mask, chip_seq)
+    mask_paths = get_ordered_mask_paths(mask_path, chip_seq)
     cellbin_matrix_paths = get_ordered_matrix_paths(prepared_cellbin, chip_seq)
 
     crop_mask_dir = output_path / "02.register" / "00.crop_mask"
@@ -193,8 +190,8 @@ def run_cellbin_index(config: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Run a cellbin-index Stereo3D workflow. This does not use tissue GEF "
-            "for gene names; cellbin integer geneID becomes gene_0/gene_1/... ."
+            "Run a cellbin-index Stereo3D workflow. Cellbin integer geneID "
+            "is used as the cross-slice gene key."
         )
     )
     parser.add_argument(
