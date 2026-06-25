@@ -73,6 +73,14 @@ def should_run_dir(path: Path, expected_count: int, overwrite: bool, suffix: str
     return len(list(path.glob(suffix))) < expected_count
 
 
+def get_z_index_list(slice_seq) -> list:
+    if hasattr(slice_seq, "z_index_list"):
+        return list(slice_seq.z_index_list)
+    if hasattr(slice_seq, "get_z_interval"):
+        return list(slice_seq.get_z_interval(index="short").values())
+    raise AttributeError("SliceSequence does not expose z_index_list or get_z_interval().")
+
+
 def transform_matrix(matrix_paths: list, crop_json: Path, align_json: Path, output_dir: Path, overwrite: bool) -> None:
     from stereo3d.gem.transform import trans_matrix_by_json
 
@@ -94,7 +102,7 @@ def create_outer_mesh(mask_paths: list, slice_seq, output_dir: Path, overwrite: 
 
     points_3d = get_mask_3d_points(
         mask_paths,
-        slice_seq.z_index_list,
+        get_z_index_list(slice_seq),
         z_interval=slice_seq.z_interval,
         pixel4mm=slice_seq.size_per_pixel,
         output_path=str(output_dir),
@@ -160,7 +168,7 @@ def run_cellbin_leiden(
         raise FileNotFoundError("Missing generated H5AD files:\n" + "\n".join(missing_h5ad))
 
     if should_run_dir(color_h5ad, len(expected_h5ad), overwrite, "*.h5ad"):
-        categories = uniform_cluster_color(h5ad_list, str(color_h5ad), z_index_list=slice_seq.z_index_list)
+        categories = uniform_cluster_color(h5ad_list, str(color_h5ad), z_index_list=get_z_index_list(slice_seq))
     else:
         print(f"Skip existing cross-slice colored H5AD: {color_h5ad}")
         first = next(color_h5ad.glob("*.h5ad"))
@@ -186,7 +194,7 @@ def run_cellbin_leiden(
             adata_list=None,
             h5ad_list=color_h5ad_list,
             sc_xyz=None,
-            z_index_list=slice_seq.z_index_list,
+            z_index_list=get_z_index_list(slice_seq),
         )
         try:
             organ_mesh(organ_path, organ_path.replace(".txt", ".obj"), z_interval=slice_seq.z_interval)

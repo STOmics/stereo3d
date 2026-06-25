@@ -17,6 +17,7 @@ from run_mouse_5slice_combined import (
     ensure_dirs,
     get_ordered_mask_paths,
     get_ordered_matrix_paths,
+    get_z_index_list,
     h5ad_names_from_matrix_paths,
     should_run_dir,
     transform_matrix,
@@ -66,7 +67,7 @@ def run_cellbin_index_leiden(
         raise FileNotFoundError("Missing generated H5AD files:\n" + "\n".join(missing_h5ad))
 
     if should_run_dir(color_h5ad, len(expected_h5ad), overwrite, "*.h5ad"):
-        categories = uniform_cluster_color(h5ad_list, str(color_h5ad), z_index_list=slice_seq.z_index_list)
+        categories = uniform_cluster_color(h5ad_list, str(color_h5ad), z_index_list=get_z_index_list(slice_seq))
     else:
         print(f"Skip existing cross-slice colored H5AD: {color_h5ad}")
         first = next(color_h5ad.glob("*.h5ad"))
@@ -90,7 +91,7 @@ def run_cellbin_index_leiden(
             adata_list=None,
             h5ad_list=color_h5ad_list,
             sc_xyz=None,
-            z_index_list=slice_seq.z_index_list,
+            z_index_list=get_z_index_list(slice_seq),
         )
         try:
             organ_mesh(organ_path, organ_path.replace(".txt", ".obj"), z_interval=slice_seq.z_interval)
