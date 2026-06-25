@@ -27,6 +27,25 @@ def _neighbor_count(adata, requested=10):
     return min(requested, max(1, adata.n_obs - 1))
 
 
+def _mark_hvg_for_integration(adata, batch_key="batch", n_top_genes=2000):
+    if adata.n_vars <= 1:
+        return False
+
+    n_top_genes = min(n_top_genes, adata.n_vars)
+    try:
+        sc.pp.highly_variable_genes(
+            adata,
+            n_top_genes=n_top_genes,
+            batch_key=batch_key,
+            flavor="seurat",
+        )
+    except Exception as exc:
+        glog.warning(f"Highly variable gene selection failed, use all genes for PCA: {exc}")
+        adata.var["highly_variable"] = True
+
+    return bool(adata.var.get("highly_variable", pd.Series(dtype=bool)).sum() >= 2)
+
+
 def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
     # h5ad_list = glob.glob(os.path.join(h5ad_path, "*.h5ad"))
     import harmonypy
@@ -35,6 +54,7 @@ def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
     adatas = []
     for file in tqdm.tqdm(h5ad_list, desc='SpecifiedColor-DataLoad', ncols=100):
         adata = ad.read(file)
+        adata.var_names_make_unique()
         adatas.append(adata)
         del adata
     # Keep only genes shared by all slices to avoid slice-specific missingness
@@ -47,13 +67,23 @@ def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
     if min(adata_all.n_obs, adata_all.n_vars) < 2:
         adata_all.obs['leiden'] = pd.Categorical(['0'] * adata_all.n_obs)
     else:
+        use_highly_variable = _mark_hvg_for_integration(adata_all, batch_key="batch")
         n_comps = _pca_component_count(adata_all)
-        sc.tl.pca(adata_all, n_comps=n_comps, svd_solver='arpack')
+        sc.tl.pca(
+            adata_all,
+            n_comps=n_comps,
+            svd_solver='arpack',
+            use_highly_variable=use_highly_variable,
+        )
 
         sc.external.pp.harmony_integrate(adata_all, key='batch')
         sc.pp.neighbors(adata_all, n_neighbors=_neighbor_count(adata_all), use_rep='X_pca_harmony')
         sc.tl.umap(adata_all)
         sc.tl.leiden(adata_all)
+
+    pd.crosstab(adata_all.obs["batch"], adata_all.obs["leiden"]).to_csv(
+        os.path.join(out_path, "slice_cluster_crosstab.csv")
+    )
 
     for i, c in enumerate(tqdm.tqdm(adata_all.obs["batch"].cat.categories, desc='SpecifiedColor', ncols=100)):
         sub_data = adata_all[adata_all.obs["batch"] == c]
