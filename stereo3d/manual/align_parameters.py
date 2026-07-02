@@ -35,7 +35,7 @@ def compute_weights(p, v, alpha=1.0):
 
 def Precompute_pstar(p, w):
     """
-    计算加权质心 p*
+    Compute weighted centroid p*
     
     Parameters:
     p : numpy array, shape (np, 2)

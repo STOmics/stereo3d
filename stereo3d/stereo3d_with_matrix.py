@@ -36,7 +36,7 @@ class Stereo3DwithTissueMatrix(object):
         # z_interval = ss.get_z_interval(index='bf')
 
     def get_matrix_path(self, chip_name: str) -> str:
-        for suffix in ['gef', 'gem.gz', 'gem', 'txt']:
+        for suffix in ['cellbin.gef', 'gef', 'gem.gz', 'gem', 'txt']:
             gem_matrix_p = os.path.join(self.matrix_path, '{}.{}'.format(chip_name, suffix))
             if os.path.exists(gem_matrix_p):
                 return gem_matrix_p

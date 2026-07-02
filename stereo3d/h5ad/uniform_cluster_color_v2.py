@@ -18,6 +18,52 @@ except ImportError:
     from typing_extensions import Literal
 
 
+def _is_placeholder_var_names(var_names):
+    """True if all var_names are placeholders gene_{i} (cellbin.gef geneName was empty)."""
+    import re
+    pat = re.compile(r'^gene_\d+$')
+    return all(pat.match(str(v)) is not None for v in var_names)
+
+
+def _check_var_names_alignment(adatas, h5ad_list=None):
+    """
+    Guard var_names consistency before multi-slice concat.
+    """
+    if len(adatas) <= 1:
+        return
+    import os
+    ref = list(adatas[0].var_names)
+    ref_placeholder = _is_placeholder_var_names(ref)
+    identical = True
+    for k, a in enumerate(adatas[1:], start=1):
+        cur = list(a.var_names)
+        if cur != ref:
+            identical = False
+        cur_placeholder = _is_placeholder_var_names(cur)
+        if (ref_placeholder or cur_placeholder) and (cur != ref or cur_placeholder != ref_placeholder):
+            tag = os.path.basename(h5ad_list[k]) if h5ad_list else f'slice {k}'
+            raise RuntimeError(
+                f'[cellbin multi-slice] var_names are placeholders (gene_i) but slice {tag} '
+                f'differs from slice0 (n={len(cur)} vs {len(ref)}). Placeholder names cannot '
+                f'guarantee cross-slice gene identity; merging would misalign genes. '
+                f'Please fill geneName in cellbin.gef before multi-slice clustering.'
+            )
+    if not identical:
+        # Real names + mismatch: inner intersection is safe
+        sizes = [len(set(a.var_names)) for a in adatas]
+        inter = len(set(ref).intersection(*[set(a.var_names) for a in adatas[1:]]))
+        glog.warning(
+            f'[multi-slice] var_names differ across slices; aligning via join=inner '
+            f'(per-slice unique genes {sizes}, intersection {inter}).'
+        )
+    elif ref_placeholder:
+        glog.warning(
+            '[cellbin multi-slice] var_names are placeholders gene_i (cellbin.gef geneName '
+            'was empty, fell back to row index). Multi-slice merge assumes identical gene '
+            'order across slices (only safe within one SAW run / gene panel).'
+        )
+
+
 def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
     # h5ad_list = glob.glob(os.path.join(h5ad_path, "*.h5ad"))
     import harmonypy
@@ -28,8 +74,11 @@ def uniform_cluster_color(h5ad_list: list, out_path:str, z_index_list: list):
         adata = ad.read(file)
         adatas.append(adata)
         del adata
+    # Multi-slice gene-alignment guard: check var_names before concat 
+    _check_var_names_alignment(adatas, h5ad_list=h5ad_list)
     # adata_all = ad.concat(adatas)
-    adata_all = AnnData.concatenate(*adatas)
+    # join='inner': align by var_names intersection (safe with real gene names)
+    adata_all = AnnData.concatenate(*adatas, join='inner')
     del adatas
 
     sc.pp.normalize_total(adata_all)
@@ -97,11 +146,10 @@ def read_and_parse_by_celltype(outdir: str, spatial_regis: str, anno: str, cellt
     else:
         raise ValueError(f"h5ad_path and adata_list should have at least one that is not None.")
     for i, adata in enumerate(adata_list):
-        # if adata.uns['data_unit']['binsize'] == 'cellbin':
-        #     binsize = 10
-        # else:
-        #     binsize = adata.uns['data_unit']['binsize']
-        binsize = 20
+        if adata.uns.get('data_unit', {}).get('binsize') == 'cellbin':
+            binsize = 10
+        else:
+            binsize = 20
         # z_size = adata.uns['data_unit']['z_size']
         # match = re.search(r'(\d+)um', z_size)
         # z_size = int(match.group(1))

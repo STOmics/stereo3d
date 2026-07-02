@@ -138,6 +138,39 @@ def gef_trans(gef_file, offset, mat, shape, output_path):
         h['geneExp']['bin1']['expression']['y'] = new_y
 
 
+def cellbin_gef_trans(gef_file, offset, mat, shape, output_path):
+    """
+    Apply registration transform to cellbin.gef cell coords (+ cellBorder).
+    """
+    import glog
+    shutil.copy(gef_file, output_path)
+    map_x = None
+    map_y = None
+    if mat and len(mat) > 3:
+        p = mat[0]
+        q = mat[1]
+        map_x, map_y = apply_affine_deformation(shape[0], shape[1], p, q, alpha=1.0)
+    with h5py.File(output_path, 'r+') as h:
+        cell = h['cellBin']['cell']
+        x = cell['x'][:]
+        y = cell['y'][:]
+        new_x, new_y = trans_points(x, y, offset, mat, map_x, map_y)
+        cell['x'] = np.int32(np.round(new_x))
+        cell['y'] = np.int32(np.round(new_y))
+
+        # Also transform cell borders if present: (n_cell,32,2) -> flatten -> transform -> reshape
+        if 'cellBorder' in h['cellBin']:
+            border = h['cellBin']['cellBorder']
+            bshape = border.shape  # (n_cell, 32, 2)
+            bx = border[:, :, 0][:].reshape(-1).astype(np.float64)
+            by = border[:, :, 1][:].reshape(-1).astype(np.float64)
+            nbx, nby = trans_points(bx, by, offset, mat, map_x, map_y)
+            nb = np.stack([np.int16(np.round(nbx)), np.int16(np.round(nby))], axis=-1)
+            border[:] = nb.reshape(bshape)
+        else:
+            glog.info('cellbin.gef has no cellBorder, skip border transform.')
+
+
 def anndata_trans(adata_file, offset, mat, shape, output_path):
     import scanpy as sc
     adata = sc.read_h5ad(adata_file)
@@ -224,6 +257,10 @@ def trans_matrix_by_json(gem_path, cut_json_path, align_json_path, output_path):
             if matrix_file.endswith('txt') or matrix_file.endswith('gem') or matrix_file.endswith('gem.gz'):
                 gem_trans(
                     matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.gem")
+                )
+            elif matrix_file.endswith('cellbin.gef'):
+                cellbin_gef_trans(
+                    matrix_file, mask_cut, mat, shape, os.path.join(output_path, f"{matrix_name}.cellbin.gef")
                 )
             elif matrix_file.endswith('gef'):
                 gef_trans(

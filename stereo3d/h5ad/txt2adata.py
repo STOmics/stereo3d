@@ -57,6 +57,11 @@ def batch_cluster(matrix_dir: str, save_dir: str, bin_size=20):
     # gem_list = glob.glob(osp.join(matrix_dir, "*.gem"))
     for it in tqdm.tqdm(gem_list, desc='Cluster'.format(bin_size), ncols=100):
         i = osp.basename(it)
+        if i.endswith('.cellbin.gef'):
+            save_path = osp.join(save_dir, i.replace('.cellbin.gef', '.h5ad'))
+            from stereo3d.h5ad.cellbin2adata import cellbin_to_h5ad
+            cellbin_to_h5ad(it, save_path)
+            continue
         if '.gem' in i:
             save_path = osp.join(save_dir, i.replace('.gem', '.h5ad'))  # Modify save_name as needed
             df = pd.read_csv(it, comment='#', sep='\t')  # Get the file to read according to lasso
